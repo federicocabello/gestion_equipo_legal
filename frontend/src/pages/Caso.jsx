@@ -1295,7 +1295,7 @@ const Caso = () => {
                                     </div>
                                 )}
                                 
-                                {pagosNo.length > 0 && pagosControl.ncuota > 0 && (
+                                {pagosNo.length > 0 && pagosControl.ncuota > 0 ? (
                                     <div className="w-1/3 mr-5">
                                     <table className="shadow-lg w-full">
                                         <thead>
@@ -1347,6 +1347,15 @@ const Caso = () => {
                                             ))}
                                         </tbody>
                                     </table>
+                                    </div>
+                                ) : (
+                                    <div className="mr-5">
+                                        <button className="btn-guardar flex items-center justify-center bg-amber-400 hover:text-white hover:bg-amber-500" onClick={()=>setAbrirModal(true)}>
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 mr-1">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                            </svg>
+                                            <span>AGREGAR PRÓXIMOS PAGOS</span>
+                                        </button>
                                     </div>
                                 )}
                                 {abrirModal && <ModalModPagos onClose={()=>(cerrarModalProximoPago())} idControl={caso.idcontrol} />}
