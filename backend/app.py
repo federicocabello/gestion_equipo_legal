@@ -1541,19 +1541,87 @@ def cobros(estado, desde, hasta):
     cursor.execute("SELECT id, estado FROM pagos_estados;")
     estados = [{"id": a[0], "estado": a[1]} for a in cursor.fetchall()]
 
+    #params, where = [], []
+    #if desde and hasta:
+    #    where.append("pagos.fecha BETWEEN %s AND %s")
+    #    params += [desde, hasta]
+    #if estado is not None:
+    #    where.append("pc.estado = %s")
+    #    params.append(estado)
+
+    #where_sql = ("WHERE " + " AND ".join(where)) if where else ""
+
+    #sql = f"SELECT pagos_control.id, pagos_estados.estado, pagos_estados.id, pagos_estados.colorestado, pagos_control.cartasenviadas, casos.id, casos.caso, clientes.id, clientes.nombre, pagos_control.valor-pagos_control.entrega-(SELECT SUM(p.monto) FROM pagos p WHERE p.control = pagos_control.id AND p.pagado = 1) AS total_no_pagados FROM pagos LEFT JOIN pagos_control ON pagos_control.id = pagos.control JOIN casos ON casos.id = pagos_control.caso JOIN clientes ON clientes.id = pagos_control.cliente JOIN pagos_estados ON pagos_estados.id = pagos_control.estado {where_sql} GROUP BY pagos.control ORDER BY pagos_control.fecha DESC;"
     params, where = [], []
+    date_filter = ""
+    exists_filter = ""          # condición EXISTS adicional
+    exists_params = []          # params duplicados para EXISTS
+
+    # Filtros de fecha (sobre pagos.fecha) - afectan SUM() y el EXISTS
     if desde and hasta:
-        where.append("pagos.fecha BETWEEN %s AND %s")
-        params += [desde, hasta]
+        date_filter = " AND p.fecha BETWEEN %s AND %s"
+        exists_filter = " AND p2.fecha BETWEEN %s AND %s"
+        params += [desde, hasta]         # para el subquery SUM(...)
+        exists_params += [desde, hasta]  # para el EXISTS
+    elif desde:
+        date_filter = " AND p.fecha >= %s"
+        exists_filter = " AND p2.fecha >= %s"
+        params.append(desde)
+        exists_params.append(desde)
+    elif hasta:
+        date_filter = " AND p.fecha <= %s"
+        exists_filter = " AND p2.fecha <= %s"
+        params.append(hasta)
+        exists_params.append(hasta)
+
+    # Filtro de estado (sobre pc.estado)
     if estado is not None:
-        where.append("pagos_control.estado = %s")
+        where.append("pc.estado = %s")
         params.append(estado)
+
+    # Si hay filtro de fecha, también exigimos que exista al menos un pago en ese rango
+    if exists_filter:
+        where.append(f"""
+            EXISTS (
+            SELECT 1
+            FROM pagos p2
+            WHERE p2.control = pc.id
+                AND p2.pagado = 1
+                {exists_filter}
+            )
+        """)
+        params += exists_params  # agregamos los params del EXISTS
 
     where_sql = ("WHERE " + " AND ".join(where)) if where else ""
 
-    #sql = f"SELECT pagos_control.id, pagos_estados.estado, pagos_estados.id, pagos_estados.colorestado, pagos_control.cartasenviadas, casos.id, casos.caso, clientes.id, clientes.nombre, pagos_control.valor-pagos_control.entrega-(SELECT SUM(p.monto) FROM pagos p WHERE p.control = pagos_control.id AND p.pagado = 1) AS total_no_pagados FROM pagos LEFT JOIN pagos_control ON pagos_control.id = pagos.control JOIN casos ON casos.id = pagos_control.caso JOIN clientes ON clientes.id = pagos_control.cliente JOIN pagos_estados ON pagos_estados.id = pagos_control.estado {where_sql} GROUP BY pagos.control ORDER BY pagos_control.fecha DESC;"
-    sql = f"SELECT pc.id, pe.estado, pe.id AS estado_id, pe.colorestado, pc.cartasenviadas,c.id AS caso_id, c.caso, cl.id AS cliente_id, cl.nombre, (pc.valor - pc.entrega - COALESCE(pagados.total_pagado, 0)) AS total_no_pagado FROM pagos_control pc JOIN casos c ON c.id = pc.caso JOIN clientes cl ON cl.id = pc.cliente JOIN pagos_estados  pe ON pe.id = pc.estado LEFT JOIN (SELECT control, SUM(monto) AS total_pagado FROM pagos WHERE pagado = 1 GROUP BY control) pagados ON pagados.control = pc.id {where_sql} ORDER BY pc.fecha DESC;"
+    sql = f"""
+    SELECT
+    pc.id,
+    pe.estado,
+    pe.id AS estado_id,
+    pe.colorestado,
+    pc.cartasenviadas,
+    c.id  AS caso_id,
+    c.caso,
+    cl.id AS cliente_id,
+    cl.nombre,
+    (pc.valor - pc.entrega - COALESCE(pagados.total_pagado, 0)) AS total_no_pagado
+    FROM pagos_control pc
+    JOIN casos         c  ON c.id  = pc.caso
+    JOIN clientes      cl ON cl.id = pc.cliente
+    JOIN pagos_estados pe ON pe.id = pc.estado
+    LEFT JOIN (
+    SELECT p.control, SUM(p.monto) AS total_pagado
+    FROM pagos p
+    WHERE p.pagado = 1{date_filter}
+    GROUP BY p.control
+    ) pagados ON pagados.control = pc.id
+    {where_sql}
+    ORDER BY pc.fecha DESC;
+    """
+
     cursor.execute(sql, params)
+
     filas = cursor.fetchall()
     cobros = [{
             "idcontrol":      r[0],
@@ -2115,5 +2183,5 @@ def generar_reporte(mes):
 
 app.config.from_object(config['development'])
 
-#if __name__ == "__main__":
-    #app.run(port=5002, debug=True)
+if __name__ == "__main__":
+    app.run(port=5002, debug=True)
