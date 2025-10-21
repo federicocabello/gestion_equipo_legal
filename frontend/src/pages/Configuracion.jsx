@@ -741,7 +741,7 @@ const Configuracion = () => {
                 )}
 
                 {activeTab == "buscar-en-base" && (
-                    <div>
+                    <div className="w-full">
                         <div className="font-bold text-xl">
                         Busqueda en la base de datos antigua
                         </div>
@@ -768,7 +768,7 @@ const Configuracion = () => {
                         </div>
 
                         {busquedaBase.length > 0 && (
-                        <table className="w-full text-xs">
+                        <table className="w-full text-xs overflow-x-auto">
                             <thead>
                                 <tr className="bg-gray-200 text-gray-500">
                                     <th className="border border-gray-300">N° Caso</th>
@@ -779,14 +779,10 @@ const Configuracion = () => {
                                     <th className="border border-gray-300">Estado caso</th>
                                     <th className="border border-gray-300">Nombre cliente</th>
                                     <th className="border border-gray-300">Descripción contacto</th>
-                                    <th className="border border-gray-300">Tel 1</th>
-                                    <th className="border border-gray-300">Tel 2</th>
-                                    <th className="border border-gray-300">Tel 3</th>
-                                    <th className="border border-gray-300">Tel 4</th>
+                                    <th className="border border-gray-300">Telefonos</th>
                                     <th className="border border-gray-300">Dirección</th>
-                                    <th className="border border-gray-300">Estado dirección</th>
-                                    <th className="border border-gray-300">Ciudad</th>
                                     <th className="border border-gray-300">Fuente del lead</th>
+                                    <th className="border border-gray-300">Beneficiario</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -800,14 +796,26 @@ const Configuracion = () => {
                                     <td className="border border-gray-300 p-1">{item.caso_estado}</td>
                                     <td className="border border-gray-300 p-1">{item.nombre_cliente}</td>
                                     <td className="border border-gray-300 p-1">{item.contacto_descripcion}</td>
-                                    <td className="border border-gray-300 p-1 text-center">{item.tel1}</td>
-                                    <td className="border border-gray-300 p-1 text-center">{item.tel2}</td>
-                                    <td className="border border-gray-300 p-1 text-center">{item.tel3}</td>
-                                    <td className="border border-gray-300 p-1 text-center">{item.tel4}</td>
-                                    <td className="border border-gray-300 p-1">{item.direccion}</td>
-                                    <td className="border border-gray-300 p-1">{item.direccion_estado}</td>
-                                    <td className="border border-gray-300 p-1">{item.ciudad}</td>
+                                    <td className="border border-gray-300 p-1">
+                                        <div>{item.tel1}</div>
+                                        <div>{item.tel2}</div>
+                                        <div>{item.tel3}</div>
+                                        <div>{item.tel4}</div>
+                                    </td>
+                                    <td className="border border-gray-300 p-1">
+                                        <div>{item.direccion}</div>
+                                        <div>{item.direccion_estado}</div>
+                                        <div>{item.ciudad}</div>
+                                        <div>{item.cp}</div>
+                                    </td>
                                     <td className="border border-gray-300 p-1">{item.lead_source}</td>
+                                    <td className="border border-gray-300 p-1">
+                                        <div>{item.beneficiario_nombre}</div>
+                                        <div>{item.beneficiario_tel1}</div>
+                                        <div>{item.beneficiario_tel2}</div>
+                                        <div>{item.beneficiario_tel3}</div>
+                                        <div>{item.beneficiario_tel4}</div>
+                                    </td>
                                 </tr>
                                 ))}
                             </tbody>

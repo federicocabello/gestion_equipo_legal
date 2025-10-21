@@ -106,16 +106,17 @@ const Cobros = () => {
                         Buscar</button>
                 </span>
             </div>
-            <table className="bg-white w-1/2 mt-10 shadow-lg">
+            <table className="bg-white w-4/5 mt-10 shadow-lg">
                 <thead>
                     <tr>
                         <th className="p-1 bg-cyan-100 border text-xs w-64">Estado</th>
                         <th className="p-1 bg-cyan-100 border text-xs">Datos</th>
+                        <th className="p-1 bg-cyan-100 border text-xs w-80">Fecha de última gestión</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td className="text-xs italic border p-1" colSpan={2}>Registros: {cobros.length}</td>
+                        <td className="text-xs italic border p-1" colSpan={3}>Registros: {cobros.length}</td>
                     </tr>
                     {cobros.map((cobro) => (
                         <tr>
@@ -148,6 +149,19 @@ const Cobros = () => {
                                 </div>
                                 <div className="text-blue-500 font-bold hover:underline hover:text-blue-700 cursor-pointer transition-all text-xs" onClick={() => navigate(`/cliente/${cobro.id_cliente}`)}>
                                     CLIENTE {cobro.cliente}
+                                </div>
+                            </td>
+                            <td className="border p-2">
+                                <div className="text-gray-400">
+                                {cobro.ultima_gestion_cobros ? (
+                                    <span>
+                                        {cobro.ultima_gestion_cobros}
+                                    </span>
+                                ) : (
+                                    <span>
+                                        No tiene registradas gestiones de cobros.
+                                    </span>
+                                )}
                                 </div>
                             </td>
                         </tr>

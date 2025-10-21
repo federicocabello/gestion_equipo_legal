@@ -332,6 +332,21 @@ const Caso = () => {
             }
         };
 
+        const toogleNuevaActualizacionPago = () => {
+            const nuevaActPago = prompt("Ingrese la nueva nota de pago: ");
+            if (nuevaActPago && nuevaActPago.trim() !== "") {
+                axios.post(`${backendUrl}/caso/actualizacion/nueva-pago`, { "nueva": nuevaActPago, "idcaso": id }, { withCredentials: true })
+                    .then((response) => {
+                        alert(response.data.mensaje);
+                        cargarSitioCaso();
+                    })
+                    .catch((error) => {
+                        console.error("Error al actualizar el nombre: ", error);
+                        alert("Error al actualizar el nombre. Reintente.");
+                    });
+            }
+        };
+
         const handleDocEliminar = (id, rol, idcaso, nombredoc) => {
             axios.post(`${backendUrl}/documento/${id}/eliminar`, { rol: rol, "idcaso": idcaso, "nombredoc": nombredoc }, { withCredentials: true })
                 .then((response) => {
@@ -393,6 +408,9 @@ const Caso = () => {
         axios.post(`${backendUrl}/caso/guardar-cita`, data, { withCredentials: true })
             .then((response) => {
                 alert(response.data.mensaje);
+                if (response.data.esresultado) {
+                    alert("⚠ Se modificó el resultado de la cita. Recuerde CALIFICAR esta lead.");
+                }
                 setIsEditing(false);
                 window.location.reload();
             })
@@ -508,9 +526,17 @@ const Caso = () => {
                         ["motivo_califica"]: motivo.trim().toUpperCase()
                     });
                 } else if (newCalifica == 1){
-                    const convertir = confirm("¿Desea convertir la consulta en un caso abierto? La página se recargará");
+                        setCaso({
+                            ...caso,
+                            ["idcalifica"]: newCalifica
+                        });
+                };
+            };
+
+            const handleConvertirCaso = (idcaso, idcliente) => {
+                const convertir = confirm("¿Desea convertir la consulta en un caso abierto? La página se recargará");
                     if (convertir == true){
-                        axios.post(`${backendUrl}/caso/convertir`, {"idcaso": idcaso, "idcliente": caso.idcliente}, { withCredentials: true })
+                        axios.post(`${backendUrl}/caso/convertir`, {"idcaso": idcaso, "idcliente": idcliente}, { withCredentials: true })
                             .then((response) => {
                                 alert(response.data.mensaje);
                                 window.location.reload();
@@ -520,14 +546,9 @@ const Caso = () => {
                                 alert("Error al convertir la consulta en un caso abierto. Reintente.");
                             });
                     } else {
-                        setCaso({
-                            ...caso,
-                            ["idcalifica"]: newCalifica
-                        });
+                        return;
                     }
-                };
-                
-            };
+                }
             
             const [registrarPagoVisible, setRegistrarPagoVisible] = useState(false);
             const [planDePagosVisible, setPlanDePagosVisible] = useState(false);
@@ -736,7 +757,16 @@ const Caso = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 0 0 .75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 0 0-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0 1 12 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 0 1-.673-.38m0 0A2.18 2.18 0 0 1 3 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 0 1 3.413-.387m7.5 0V5.25A2.25 2.25 0 0 0 13.5 3h-3a2.25 2.25 0 0 0-2.25 2.25v.894m7.5 0a48.667 48.667 0 0 0-7.5 0M12 12.75h.008v.008H12v-.008Z" />
                             </svg>
                             {caso.capturadedatos ? (
-                              <span>Consulta</span>
+                                <span className="flex items-center">
+                                    <span className="mr-5">Consulta</span>
+                                    <span className=" flex justify-center text-xs text-green-500 border border-green-500 rounded p-1 hover:bg-green-500 hover:text-white cursor-pointer transition-all" onClick={() => handleConvertirCaso(caso.idcaso, caso.idcliente)}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-4 mr-1">
+                                            <path fillRule="evenodd" d="M14.615 1.595a.75.75 0 0 1 .359.852L12.982 9.75h7.268a.75.75 0 0 1 .548 1.262l-10.5 11.25a.75.75 0 0 1-1.272-.71l1.992-7.302H3.75a.75.75 0 0 1-.548-1.262l10.5-11.25a.75.75 0 0 1 .913-.143Z" clipRule="evenodd" />
+                                        </svg>
+                                        ABRIR CASO
+                                    </span>
+                                </span>
+                              
                             ) : (
                               <span>Caso</span>  
                             )}
@@ -846,10 +876,10 @@ const Caso = () => {
                                                 </button>
                                                 </div>
                                                 {mostrarNuevaActualizacion && (
-                                                <div className="flex items-center mt-5">
-                                                    <button className={`${loading || !nuevaActualizacion.trim() ? 'btn-guardar bg-transparent border-gray-300 text-gray-300 hover:bg-transparent mr-2': 'btn-guardar mr-2 bg-emerald-500 hover:bg-emerald-700 transition-all'}`} onClick={handleAddActualizacion} disabled={loading || !nuevaActualizacion.trim()}>{loading ? 'Cargando...' : 'Enviar'}</button>
-                                                    <textarea className="text-sm border rounded w-full p-2 h-24" ref={textareaRef} onChange={(e) => setNuevaActualizacion(e.target.value)}></textarea>
-                                                </div>
+                                                    <div className="flex items-center mt-5">
+                                                        <button className={`${loading || !nuevaActualizacion.trim() ? 'btn-guardar bg-transparent border-gray-300 text-gray-300 hover:bg-transparent mr-2': 'btn-guardar mr-2 bg-emerald-500 hover:bg-emerald-700 transition-all'}`} onClick={handleAddActualizacion} disabled={loading || !nuevaActualizacion.trim()}>{loading ? 'Cargando...' : 'Enviar'}</button>
+                                                        <textarea className="text-sm border rounded w-full p-2 h-24" ref={textareaRef} onChange={(e) => setNuevaActualizacion(e.target.value)}></textarea>
+                                                    </div>
                                             )}
                                             {actualizaciones.map((item) => (
                                             <div key={item.id} className="my-3 rounded-xl border-2 bg-white" hidden={item.deleted == 1 && rol != "superadmin"}>
@@ -1517,6 +1547,12 @@ const Caso = () => {
                                         <path strokeLinecap="round" strokeLinejoin="round" d="m7.875 14.25 1.214 1.942a2.25 2.25 0 0 0 1.908 1.058h2.006c.776 0 1.497-.4 1.908-1.058l1.214-1.942M2.41 9h4.636a2.25 2.25 0 0 1 1.872 1.002l.164.246a2.25 2.25 0 0 0 1.872 1.002h2.092a2.25 2.25 0 0 0 1.872-1.002l.164-.246A2.25 2.25 0 0 1 16.954 9h4.636M2.41 9a2.25 2.25 0 0 0-.16.832V12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 12V9.832c0-.287-.055-.57-.16-.832M2.41 9a2.25 2.25 0 0 1 .382-.632l3.285-3.832a2.25 2.25 0 0 1 1.708-.786h8.43c.657 0 1.281.287 1.709.786l3.284 3.832c.163.19.291.404.382.632M4.5 20.25h15A2.25 2.25 0 0 0 21.75 18v-2.625c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125V18a2.25 2.25 0 0 0 2.25 2.25Z" />
                                     </svg>
                                     <span>Actualizaciones</span>
+                                    <button type="button" className="btn-guardar bg-amber-200 text-gray-500 hover:text-black hover:bg-amber-300 flex items-center ml-5" onClick={toogleNuevaActualizacionPago}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4 mr-1">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                                        </svg>
+                                        Nueva actualización
+                                    </button>
                                 </div>
                                 <hr className="my-4"/>
                                 {actualizaciones.map((item) => (

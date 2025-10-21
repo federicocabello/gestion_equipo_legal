@@ -115,9 +115,7 @@ useEffect(() => {
   }, 300);
   return () => clearTimeout(handler);
 }, [searchTermCases]);
-
     
-
     useEffect(() => {
   if (debouncedSearch) {
     axios.get(`${backendUrl}/busqueda/perfil`, {
@@ -149,7 +147,6 @@ useEffect(() => {
     setSearchResultsCases([]);
   }
 }, [debouncedSearch, debouncedSearchCases, backendUrl]);
-
 
       const handleSelectClient = (client) => {
         setSearchTerm('');
@@ -226,7 +223,7 @@ useEffect(() => {
                         <li
                             key={caso.id}
                             className="cursor-pointer bg-white hover:bg-cyan-100 p-2"
-                            onClick={() => handleSelectCase(caso.casos)}
+                            onClick={() => handleSelectCase(searchTermCases)}
                         >
                             <div>
                                 {caso.clasificacion === "LEAD" && (<div className="text-blue-700 font-bold">{caso.nombre}</div>)}
