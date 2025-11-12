@@ -152,7 +152,7 @@ const Cobros = () => {
                                 </div>
                             </td>
                             <td className="border p-2">
-                                <div className="text-gray-400">
+                                <div className="text-gray-600 text-xs">
                                 {cobro.ultima_gestion_cobros ? (
                                     <span>
                                         {cobro.ultima_gestion_cobros}
@@ -161,6 +161,11 @@ const Cobros = () => {
                                     <span>
                                         No tiene registradas gestiones de cobros.
                                     </span>
+                                )}
+                                {cobro.ultima_fecha_pago && (
+                                    <div className="text-cyan-600 font-bold">
+                                        Último pago: {cobro.ultima_fecha_pago}
+                                    </div>
                                 )}
                                 </div>
                             </td>

@@ -26,7 +26,7 @@ load_dotenv()
 backend_url = os.getenv("BACKEND_URL")
 
 app = Flask(__name__, static_folder="static")
-app.secret_key = "B!1w8NAt1T^%kvhUI*S^"
+app.secret_key = "B!1w8NAt1T^%kvhUI*S^f"
 CORS(app, supports_credentials=True, origins=backend_url)
 
 mysql = MySQL(app)
@@ -262,6 +262,24 @@ def gestionDeLeads():
         "califica": califica
     }
     return jsonify({"resultados": resultados, "selects": selects, "rol": rol})
+
+@app.route("/reportes", methods=["GET", "POST"])
+@login_required
+def reportes():
+    data = request.json
+    fecha = data.get("fecha")
+    cursor = mysql.connection.cursor()
+    cursor.execute("""SELECT pagos.id AS idpago, pagos.fecha, pagos.monto, pagos_tipo.tipo, pagos_metodo.metodo, pagos.nombretipopago, pagos.pagado, auth.fullname, casos.id, casos.caso, clientes.nombre FROM pagos JOIN pagos_control ON pagos_control.id=pagos.control JOIN clientes ON clientes.id=pagos_control.cliente JOIN casos ON casos.id=pagos_control.caso JOIN pagos_tipo ON pagos_tipo.id=pagos.tipo JOIN pagos_metodo ON pagos_metodo.id=pagos.metodo JOIN auth ON pagos.agente = auth.id WHERE pagado > 0 AND pagos.fecha = %s
+
+UNION ALL 
+
+SELECT pagos_independientes.id AS idpago, pagos_independientes.fecha, pagos_independientes.monto, pagos_tipo.tipo, pagos_metodo.metodo, pagos_independientes.nombretipopago, 4, auth.fullname, casos.id, casos.caso, clientes.nombre FROM pagos_independientes JOIN clientes ON clientes.id=pagos_independientes.cliente JOIN casos ON casos.id=pagos_independientes.caso JOIN pagos_tipo ON pagos_tipo.id=pagos_independientes.tipo JOIN pagos_metodo ON pagos_metodo.id=pagos_independientes.metodo JOIN auth ON pagos_independientes.agente = auth.id WHERE pagos_independientes.fecha = %s;
+    """, (fecha, fecha))
+    reporte_pagos = cursor.fetchall()
+    reporte_pagos = [{"idpago": a[0], "fecha": a[1], "monto": float(a[2]), "tipo": a[3], "metodo": a[4], "nombretipopago": a[5], "pagado": a[6], "agente": a[7], "idcaso": a[8], "caso": a[9], "cliente": a[10]} for a in reporte_pagos]
+    total = float(sum(pago["monto"] for pago in reporte_pagos))
+    cursor.close()
+    return jsonify({"reporte_pagos": reporte_pagos, "total": total})
 
 @app.route("/gestion-de-leads/eliminar", methods=["POST"])
 @login_required
@@ -834,7 +852,8 @@ def nueva_actualizacion_caso_pago():
     actualizacion = datos.get("nueva").strip().upper()
     cursor = mysql.connection.cursor()
     cursor.execute("INSERT INTO casos_actualizaciones (idcaso, creado, actualizacion, agente, esresultado) VALUES (%s, now(), %s, %s, 2)", (id, actualizacion, current_user.id))
-    cursor.execute("UPDATE pagos_control SET ultima_gestion_cobros = now() WHERE caso = %s", (id,))
+    if current_user.id == 11 or current_user.id == 17 or current_user.id == 16 or current_user.id == 14:
+        cursor.execute("UPDATE pagos_control SET ultima_gestion_cobros = now() WHERE caso = %s", (id,))
     cursor.execute("INSERT INTO log (caso, movimiento, agente, fecha) VALUES (%s, %s, %s, now())", (id, "Agregó una actualización de pago del caso.", current_user.id))
     mysql.connection.commit()
     cursor.close()
@@ -869,6 +888,9 @@ def caso_pago_control_actualizar():
     datos = request.json
     cursor = mysql.connection.cursor()
     cursor.execute("UPDATE pagos_control SET cartasenviadas = %s, estado = %s WHERE id = %s", (datos.get("cartas"), datos.get("estado"), datos.get("idpago")))
+    cursor.execute("UPDATE pagos_control SET ultima_gestion_cobros = now() WHERE caso = %s", (datos.get("idcaso"),))
+    if current_user.id == 11 or current_user.id == 17 or current_user.id == 16 or current_user.id == 14:
+        cursor.execute("UPDATE pagos_control SET ultima_gestion_cobros = now() WHERE caso = %s", (id,))
     cursor.execute("INSERT INTO log (caso, movimiento, agente, fecha, otro) VALUES (%s, %s, %s, now(), 'PAGOS')", (datos.get("idcaso"), "Actualizó los datos de control de pagos.", current_user.id))
     mysql.connection.commit()
     cursor.close()
@@ -1573,28 +1595,16 @@ def cobros(estado, desde, hasta):
     cursor.execute("SELECT id, estado FROM pagos_estados;")
     estados = [{"id": a[0], "estado": a[1]} for a in cursor.fetchall()]
 
-    #params, where = [], []
-    #if desde and hasta:
-    #    where.append("pagos.fecha BETWEEN %s AND %s")
-    #    params += [desde, hasta]
-    #if estado is not None:
-    #    where.append("pc.estado = %s")
-    #    params.append(estado)
-
-    #where_sql = ("WHERE " + " AND ".join(where)) if where else ""
-
-    #sql = f"SELECT pagos_control.id, pagos_estados.estado, pagos_estados.id, pagos_estados.colorestado, pagos_control.cartasenviadas, casos.id, casos.caso, clientes.id, clientes.nombre, pagos_control.valor-pagos_control.entrega-(SELECT SUM(p.monto) FROM pagos p WHERE p.control = pagos_control.id AND p.pagado = 1) AS total_no_pagados FROM pagos LEFT JOIN pagos_control ON pagos_control.id = pagos.control JOIN casos ON casos.id = pagos_control.caso JOIN clientes ON clientes.id = pagos_control.cliente JOIN pagos_estados ON pagos_estados.id = pagos_control.estado {where_sql} GROUP BY pagos.control ORDER BY pagos_control.fecha DESC;"
     params, where = [], []
     date_filter = ""
-    exists_filter = ""          # condición EXISTS adicional
-    exists_params = []          # params duplicados para EXISTS
+    exists_filter = ""
+    exists_params = []
 
-    # Filtros de fecha (sobre pagos.fecha) - afectan SUM() y el EXISTS
     if desde and hasta:
         date_filter = " AND p.fecha BETWEEN %s AND %s"
         exists_filter = " AND p2.fecha BETWEEN %s AND %s"
-        params += [desde, hasta]         # para el subquery SUM(...)
-        exists_params += [desde, hasta]  # para el EXISTS
+        params += [desde, hasta]
+        exists_params += [desde, hasta]
     elif desde:
         date_filter = " AND p.fecha >= %s"
         exists_filter = " AND p2.fecha >= %s"
@@ -1606,23 +1616,21 @@ def cobros(estado, desde, hasta):
         params.append(hasta)
         exists_params.append(hasta)
 
-    # Filtro de estado (sobre pc.estado)
     if estado is not None:
         where.append("pc.estado = %s")
         params.append(estado)
 
-    # Si hay filtro de fecha, también exigimos que exista al menos un pago en ese rango
     if exists_filter:
         where.append(f"""
             EXISTS (
             SELECT 1
             FROM pagos p2
             WHERE p2.control = pc.id
-                AND p2.pagado = 1
+                AND p2.pagado IN (1,2,3)
                 {exists_filter}
             )
         """)
-        params += exists_params  # agregamos los params del EXISTS
+        params += exists_params
 
     where_sql = ("WHERE " + " AND ".join(where)) if where else ""
 
@@ -1650,7 +1658,41 @@ def cobros(estado, desde, hasta):
     GROUP BY p.control
     ) pagados ON pagados.control = pc.id
     {where_sql}
-    ORDER BY pc.ultima_gestion_cobros DESC, pc.fecha DESC;
+    ORDER BY pc.ultima_gestion_cobros ASC, pc.fecha DESC;
+    """
+    
+    sql = f"""
+    SELECT
+    pc.id,
+    pe.estado,
+    pe.id AS estado_id,
+    pe.colorestado,
+    pc.cartasenviadas,
+    c.id  AS caso_id,
+    c.caso,
+    cl.id AS cliente_id,
+    cl.nombre,
+    (pc.valor - pc.entrega - COALESCE(pagados.total_pagado, 0)) AS total_no_pagado,
+    DATE_FORMAT(pc.ultima_gestion_cobros, "%%m/%%d/%%Y") AS ultima_gestion_cobros,
+    DATE_FORMAT(ultpago.ultima_fecha_pago, "%%m/%%d/%%Y") AS ultima_fecha_pago
+FROM pagos_control pc
+JOIN casos         c  ON c.id  = pc.caso
+JOIN clientes      cl ON cl.id = pc.cliente
+JOIN pagos_estados pe ON pe.id = pc.estado
+LEFT JOIN (
+    SELECT p.control, SUM(p.monto) AS total_pagado
+    FROM pagos p
+    WHERE p.pagado IN (1,2,3) {date_filter}
+    GROUP BY p.control
+) pagados ON pagados.control = pc.id
+LEFT JOIN (
+    SELECT p.control, MAX(p.fecha) AS ultima_fecha_pago
+    FROM pagos p
+    WHERE p.pagado IN (1,2,3) {date_filter}
+    GROUP BY p.control
+) ultpago ON ultpago.control = pc.id
+{where_sql}
+ORDER BY pc.ultima_gestion_cobros ASC, pc.fecha DESC;
     """
 
     cursor.execute(sql, params)
@@ -1667,7 +1709,8 @@ def cobros(estado, desde, hasta):
             "id_cliente":     r[7],
             "cliente":        r[8],
             "total_no_pagados": float(r[9]) if r[9] is not None else 0.0,
-            "ultima_gestion_cobros": r[10]
+            "ultima_gestion_cobros": r[10],
+            "ultima_fecha_pago": r[11]
         } for r in filas]
     cursor.close()
     data = {
@@ -1788,6 +1831,8 @@ def cobros_cambiar_estado():
     cursor = mysql.connection.cursor()
     cursor.execute("UPDATE pagos_control SET estado = %s WHERE id = %s", (idestado, idpago))
     cursor.execute("UPDATE pagos_control SET ultima_gestion_cobros = current_date() WHERE id = %s", (idpago,))
+    if current_user.id == 11 or current_user.id == 17 or current_user.id == 16 or current_user.id == 14:
+        cursor.execute("UPDATE pagos_control SET ultima_gestion_cobros = now() WHERE caso = %s", (id,))
     mysql.connection.commit()
     cursor.close()
     return jsonify({"mensaje": "✅ Estado de pago actualizado correctamente."})
@@ -2241,4 +2286,4 @@ def generar_reporte_leads():
 app.config.from_object(config['development'])
 
 #if __name__ == "__main__":
-    #app.run(port=5002, debug=True)
+    #app.run(port=5004, debug=True)
