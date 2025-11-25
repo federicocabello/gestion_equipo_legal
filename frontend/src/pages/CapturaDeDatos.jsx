@@ -13,6 +13,7 @@ import esLocale from '@fullcalendar/core/locales/es';
 
 const CapturaDeDatos = ({nuevaConsulta, idCliente, nombreCliente, editarCitaCaso, onDateHourSelect}) => {
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
+    const [rol, setRol] = useState(null);
     const [loading, setLoading] = useState(false);
     const nombreInputRef = useRef(null);
     const navigate = useNavigate();
@@ -55,6 +56,7 @@ const CapturaDeDatos = ({nuevaConsulta, idCliente, nombreCliente, editarCitaCaso
     useEffect(() => {
             axios.get(`${backendUrl}/captura-de-datos`, {withCredentials: true})
             .then((response) => {
+                setRol(response.data.rol);
                 setOficina(response.data.oficina);
                 setReferido(response.data.referido);
                 setTipoCita(response.data.tipocita);
@@ -252,6 +254,21 @@ const handleClickHourCita = (hour) => {
         setIsFormValidConsulta(isValid);
     };
 
+    const handleBloquearHora = (hora, fecha) => {
+        const data = {
+            hora: hora,
+            fecha: fecha
+        };
+        axios.post(`${backendUrl}/calendario/bloquear-hora`, data, { withCredentials: true })
+                            .then((response) => {
+                                alert(response.data.mensaje);
+                            })
+                            .catch((error) => {
+                                console.error("Error al bloquear la hora: ", error);
+                                alert("Error al bloquear la hora. Reintente.");
+                            });
+    };
+
 return (
     <div>
         {!editarCitaCaso ? (
@@ -414,7 +431,12 @@ return (
                                 <div className="underline font-bold p-1 text-blue-400 text-center text-base">Horarios disponibles</div>
                                     <ul className="grid grid-cols-2 gap-2 mt-2">
                                     {freeHours.map((hour, index) => (
-                                        <li className={`cursor-pointer border font-bold rounded border-blue-400 p-1 text-blue-400 text-center hover:bg-blue-400 hover:text-white transition-all duration-200 ${selectedHour === hour ? "bg-blue-400 text-white" : "bg-none"}`} key={index} onClick={() => handleClickHour(hour)}>{formatHour(hour)}</li>
+                                        <div className="border border-blue-400 rounded">
+                                        <li className={`cursor-pointer font-bold rounded p-1 text-blue-400 text-center hover:bg-blue-400 hover:text-white transition-all duration-200 ${selectedHour === hour ? "bg-blue-400 text-white" : "bg-none"}`} key={index} onClick={() => handleClickHour(hour)}>{formatHour(hour)}</li>
+                                        {rol == "superadmin" && (
+                                            <span className="text-xs text-red-500 font-bold cursor-pointer hover:underline" onClick={(e) => handleBloquearHora(hour, selectedDate)}>Bloquear</span>
+                                        )}
+                                        </div>
                                     ))}
                                     </ul>
                             </div>

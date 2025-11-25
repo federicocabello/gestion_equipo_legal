@@ -17,9 +17,13 @@ const Cobros = () => {
         const [pagoDesde,  setPagoDesde]  = useState(desde  ?? "");
         const [pagoHasta,  setPagoHasta]  = useState(hasta  ?? "");
 
+        const [loading, setLoading] = useState(false);
+
+
         const cargarSitioCobros = () => {
-            const haveEstado = estado !== undefined && estado !== "null" && estado !== "";
-    const haveFechas = (desde && desde !== "null" && hasta && hasta !== "null");
+    const haveEstado =
+      estado !== undefined && estado !== "null" && estado !== "";
+    const haveFechas = desde && desde !== "null" && hasta && hasta !== "null";
 
     let url = `${backendUrl}/cobros`;
     if (haveEstado && !haveFechas) {
@@ -29,17 +33,27 @@ const Cobros = () => {
       url = `${backendUrl}/cobros/${e}/${desde}/${hasta}`;
     }
 
-            axios.get(url, { withCredentials: true })
-            .then((res) => {
-                setRol(res.data.rol);
-                setEstados(res.data.estados);
-                if (res.data.cobros) setCobros(res.data.cobros);
-            })
-            .catch((err) => {
-                console.error("Error al obtener cobros:", err);
-                alert("Error! Reintente.");
-            });
-        }
+    const getData = async () => {
+      setLoading(true);
+      try {
+        const res = await axios.get(url, { withCredentials: true });
+        setRol(res.data.rol);
+        setEstados(res.data.estados);
+        if (res.data.cobros) setCobros(res.data.cobros);
+      } catch {
+        (err) => {
+          console.error("Error al obtener cobros:", err);
+          alert("Error! Reintente.");
+          setLoading(false);
+        };
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getData();
+  };
+
         
         const cambiarPagoEstado = (idpago, idestado) => {
             axios.post(`${backendUrl}/cobros/cambiar-estado`, { idpago: idpago, idestado: idestado }, { withCredentials: true })
@@ -116,8 +130,17 @@ const Cobros = () => {
                 </thead>
                 <tbody>
                     <tr>
-                        <td className="text-xs italic border p-1" colSpan={3}>Registros: {cobros.length}</td>
+                        <td className="text-xs italic border p-1" colSpan={3}>
+                            {loading ? (
+                                <div className="flex justify-center items-center m-auto z-5 p-2">
+                                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-500"></div>
+                                </div>
+                            ) : (
+                                <span>Registros: {cobros.length}</span>
+                            )}
+                        </td>
                     </tr>
+
                     {cobros.map((cobro) => (
                         <tr>
                             <td className="border p-2">

@@ -157,6 +157,9 @@ def capturaDeDatos():
     rows = cursor.fetchall()
     schedule = [{"hour": row[0], "maxAppointments": row[1]} for row in rows]
     
+    cursor.execute(f"SELECT rol FROM auth WHERE id = {current_user.id}")
+    rol = cursor.fetchone()
+    
     cursor.close()
     resultados = {
         "oficina": oficina,
@@ -167,7 +170,8 @@ def capturaDeDatos():
         "asesores": asesores,
         "fechas_bloqueadas": fechas_bloqueadas,
         "subclase": subclase,
-        "schedule": schedule
+        "schedule": schedule,
+        "rol": rol
     }
     
     return jsonify(resultados)
@@ -392,6 +396,18 @@ def opcionesAgregar():
     mysql.connection.commit()
     cursor.close()
     return jsonify({"mensaje": "✅ Datos de "+nombre+" registrados con éxito.", "status": 200})
+
+@app.route("/calendario/bloquear-hora", methods=["POST"])
+@login_required
+def bloquearHoraCalendario():
+    data = request.json
+    fecha = data.get("fecha")
+    hora = data.get("hora")
+    cursor = mysql.connection.cursor()
+    cursor.execute("INSERT INTO calendario_horas_bloqueadas (hora, fecha) VALUES ( %s, %s)", (hora, fecha))
+    mysql.connection.commit()
+    cursor.close()
+    return jsonify({"mensaje": "✅ Hora bloqueada correctamente."})
 
 @app.route("/consultas/nueva", methods=["POST"])
 @login_required
@@ -2285,5 +2301,5 @@ def generar_reporte_leads():
 
 app.config.from_object(config['development'])
 
-#if __name__ == "__main__":
-    #app.run(port=5004, debug=True)
+if __name__ == "__main__":
+    app.run(port=5004, debug=True)
