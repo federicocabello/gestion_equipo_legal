@@ -19,6 +19,7 @@ const Configuracion = () => {
     const [statusCita, setStatusCita] = useState([]);
     const [estadosPagos, setEstadosPagos] = useState([]);
     const [horas, setHoras] = useState([]);
+    const [horasBloqueadas, setHorasBloqueadas] = useState([]);
 
     const cargarSitioConfiguracion = () => {
         axios.get(`${backendUrl}/configuracion`, {withCredentials: true})
@@ -34,6 +35,7 @@ const Configuracion = () => {
                                 setStatusCita(response.data.statusCita);
                                 setEstadosPagos(response.data.estadosPagos);
                                 setHoras(response.data.horas);
+                                setHorasBloqueadas(response.data.horasBloqueadas);
                             })
                             .catch((error) => {
                                 console.error("Error al obtener los datos de configuración: ", error);
@@ -92,6 +94,17 @@ const Configuracion = () => {
                         .catch((error) => {
                             console.error("Error al quitar la fecha: ", error);
                             alert("Error al quitar la fecha. Reintente.");
+                        });
+            };
+
+            const eliminarHoraBloqueada = (idhora, hora) => {
+                axios.post(`${backendUrl}/configuracion/quitar-hora-bloqueada`, {"id": idhora, "hora": hora}, { withCredentials: true })
+                        .then((response) => {
+                            cargarSitioConfiguracion();
+                        })
+                        .catch((error) => {
+                            console.error("Error al quitar la hora: ", error);
+                            alert("Error al quitar la hora. Reintente.");
                         });
             };
 
@@ -425,7 +438,7 @@ const Configuracion = () => {
                                             <td className="text-center font-bold border">{fechaBloqueada.fecha}</td>
                                             <td className="p-2">{fechaBloqueada.motivo}</td>
                                             <td className="w-8">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 cursor-pointer hover:text-red-700 transition-all" onClick={() => eliminarFechaBloqueada(fechaBloqueada.fecha)}>
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 cursor-pointer hover:text-red-700 transition-all hover:scale-105" onClick={() => eliminarFechaBloqueada(fechaBloqueada.fecha)}>
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9.75 14.25 12m0 0 2.25 2.25M14.25 12l2.25-2.25M14.25 12 12 14.25m-2.58 4.92-6.374-6.375a1.125 1.125 0 0 1 0-1.59L9.42 4.83c.21-.211.497-.33.795-.33H19.5a2.25 2.25 0 0 1 2.25 2.25v10.5a2.25 2.25 0 0 1-2.25 2.25h-9.284c-.298 0-.585-.119-.795-.33Z" />
                                             </svg>
                                             </td>
@@ -453,6 +466,31 @@ const Configuracion = () => {
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                 </svg>
                             </div>
+                        </div>
+                        <div className="font-bold text-xl mt-10">Horas bloqueadas</div>
+                        <hr className="my-2" />
+                        <div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th className="border bg-blue-100 text-blue-500">Fecha</th>
+                                        <th className="border bg-blue-100 text-blue-500" colSpan={2}>Hora</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {horasBloqueadas.map((hora) => (
+                                        <tr key={hora.id}>
+                                            <td className="border p-2">{hora.fecha}</td>
+                                            <td className="border p-2 font-bold">{hora.hora}</td>
+                                            <td className="border p-2" onClick={() => eliminarHoraBloqueada(hora.id, hora.hora)}>
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 hover:scale-105 cursor-pointer hover:text-red-700 transition-all">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9.75 14.25 12m0 0 2.25 2.25M14.25 12l2.25-2.25M14.25 12 12 14.25m-2.58 4.92-6.374-6.375a1.125 1.125 0 0 1 0-1.59L9.42 4.83c.21-.211.497-.33.795-.33H19.5a2.25 2.25 0 0 1 2.25 2.25v10.5a2.25 2.25 0 0 1-2.25 2.25h-9.284c-.298 0-.585-.119-.795-.33Z" />
+                                                </svg>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 )}

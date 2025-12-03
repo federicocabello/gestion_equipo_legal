@@ -49,6 +49,8 @@ const CapturaDeDatos = ({nuevaConsulta, idCliente, nombreCliente, editarCitaCaso
 
     const [schedule, setSchedule] = useState([])
 
+    const [fechasHorasBloqueadas, setFechasHorasBloqueadas] = useState([]);
+
     const handleFileChange = (e) => {
         setFiles(e.target.files);
     };
@@ -73,6 +75,7 @@ const CapturaDeDatos = ({nuevaConsulta, idCliente, nombreCliente, editarCitaCaso
                 setEvents(transformedEvents);
                 setFechasBloqueadas(response.data.fechas_bloqueadas);
                 setSchedule(Array.isArray(response.data.schedule) ? response.data.schedule : []);
+                setFechasHorasBloqueadas(response.data.fechas_horas_bloqueadas);
             })
             .catch ((error) => {
             console.error("Error al obtener los datos:", error);
@@ -81,8 +84,9 @@ const CapturaDeDatos = ({nuevaConsulta, idCliente, nombreCliente, editarCitaCaso
 
 const handleClickDate = (dateInfo) => {
     const clickedDate = dateInfo.dateStr;
-
-    // Verificar si la fecha está bloqueada
+    //console.log("Fecha clickeada: ", clickedDate);
+    //console.log("Fechas bloqueadas: ", fechasHorasBloqueadas);
+    
     const isBlocked = fechasBloqueadas.some(
         (blockedDate) => new Date(blockedDate.fecha).toISOString().split("T")[0] === clickedDate
     );
@@ -91,6 +95,12 @@ const handleClickDate = (dateInfo) => {
     if (isBlocked) {
         return;
     }
+
+    const blockedHoursForDay = fechasHorasBloqueadas
+        .filter((item) => item.fecha === clickedDate) // si backend manda 'YYYY-MM-DD'
+        .map((item) => item.hora);
+
+    console.log("Horas bloqueadas para este día: ", blockedHoursForDay);
 
     const dayEvents = rawData.filter((cita) => cita.fecha === clickedDate);
     const occupiedSlots = {};
@@ -101,11 +111,29 @@ const handleClickDate = (dateInfo) => {
         });
     });
 
-    const free = schedule.filter((slot) => (occupiedSlots[slot.hour] || 0) < slot.maxAppointments).map((slot) => slot.hour);
+    //const free = schedule.filter((slot) => (occupiedSlots[slot.hour] || 0) < slot.maxAppointments).map((slot) => slot.hour);
+    const free = schedule.filter((slot) => !blockedHoursForDay.includes(slot.hour)).filter((slot) => (occupiedSlots[slot.hour] || 0) < slot.maxAppointments).map((slot) => slot.hour);
 
     setFreeHours(free);
     setSelectedDate(clickedDate);
 };
+
+const handleBloquearHora = (hora, fecha) => {
+        const data = {
+            hora: hora,
+            fecha: fecha
+        };
+        axios.post(`${backendUrl}/calendario/bloquear-hora`, data, { withCredentials: true })
+                            .then((response) => {
+                                console.log(response.data.mensaje);
+                                setFechasHorasBloqueadas((prev) => [...prev, { fecha, hora }]);
+                                setFreeHours((prev) => prev.filter((h) => h !== hora));
+                            })
+                            .catch((error) => {
+                                console.error("Error al bloquear la hora: ", error);
+                                alert("Error al bloquear la hora. Reintente.");
+                            });
+    };
 
 const handleClickHour = (hour) => {
     setSelectedHour(hour);
@@ -252,21 +280,6 @@ const handleClickHourCita = (hour) => {
                         //selectedDate !== "" &&
                         //selectedHour !== "";
         setIsFormValidConsulta(isValid);
-    };
-
-    const handleBloquearHora = (hora, fecha) => {
-        const data = {
-            hora: hora,
-            fecha: fecha
-        };
-        axios.post(`${backendUrl}/calendario/bloquear-hora`, data, { withCredentials: true })
-                            .then((response) => {
-                                alert(response.data.mensaje);
-                            })
-                            .catch((error) => {
-                                console.error("Error al bloquear la hora: ", error);
-                                alert("Error al bloquear la hora. Reintente.");
-                            });
     };
 
 return (
@@ -434,7 +447,12 @@ return (
                                         <div className="border border-blue-400 rounded">
                                         <li className={`cursor-pointer font-bold rounded p-1 text-blue-400 text-center hover:bg-blue-400 hover:text-white transition-all duration-200 ${selectedHour === hour ? "bg-blue-400 text-white" : "bg-none"}`} key={index} onClick={() => handleClickHour(hour)}>{formatHour(hour)}</li>
                                         {rol == "superadmin" && (
-                                            <span className="text-xs text-red-500 font-bold cursor-pointer hover:underline" onClick={(e) => handleBloquearHora(hour, selectedDate)}>Bloquear</span>
+                                            <div className="text-xs text-red-500 font-bold cursor-pointer hover:underline flex justify-center my-1 items-center" onClick={(e) => handleBloquearHora(hour, selectedDate)}>
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-3 mr-1">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
+                                            </svg>
+                                           <span>Bloquear</span>
+                                            </div>
                                         )}
                                         </div>
                                     ))}

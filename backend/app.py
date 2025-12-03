@@ -157,6 +157,10 @@ def capturaDeDatos():
     rows = cursor.fetchall()
     schedule = [{"hour": row[0], "maxAppointments": row[1]} for row in rows]
     
+    cursor.execute("SELECT DATE_FORMAT(fecha, '%Y-%m-%d'), CONCAT(hora) FROM calendario_horas_bloqueadas;")
+    fechas_horas_bloqueadas = cursor.fetchall()
+    fechas_horas_bloqueadas = [{"fecha": a[0], "hora": a[1]} for a in fechas_horas_bloqueadas]
+    
     cursor.execute(f"SELECT rol FROM auth WHERE id = {current_user.id}")
     rol = cursor.fetchone()
     
@@ -171,7 +175,8 @@ def capturaDeDatos():
         "fechas_bloqueadas": fechas_bloqueadas,
         "subclase": subclase,
         "schedule": schedule,
-        "rol": rol
+        "rol": rol,
+        "fechas_horas_bloqueadas": fechas_horas_bloqueadas
     }
     
     return jsonify(resultados)
@@ -1243,6 +1248,10 @@ def configuracion():
     horas = cursor.fetchall()
     horas = [{"idhora": a[0], "hora": a[1], "cant": a[2]} for a in horas]
     
+    cursor.execute("SELECT id, DATE_FORMAT(hora, '%h:%m %p'), DATE_FORMAT(fecha, '%M %d, %Y') FROM calendario_horas_bloqueadas ORDER BY fecha;")
+    horas_bloqueadas = cursor.fetchall()
+    horas_bloqueadas = [{"id": a[0], "hora": a[1], "fecha": a[2]} for a in horas_bloqueadas]
+    
     cursor.close()
     menuconfig = {
         "fechasBloqueadas": fechasBloqueadas,
@@ -1253,7 +1262,8 @@ def configuracion():
         "tipoCita": tipoCita,
         "statusCita": statusCita,
         "estadosPagos": estadosPagos,
-        "horas": horas
+        "horas": horas,
+        "horasBloqueadas": horas_bloqueadas
     }
     return jsonify(menuconfig)
 
@@ -1279,6 +1289,19 @@ def quitar_flecha_bloqueada():
     cursor = mysql.connection.cursor()
     cursor.execute(f"DELETE FROM calendario_fechas_bloqueadas WHERE fecha = '{fecha_formateada}';")
     cursor.execute("INSERT INTO log (otro, movimiento, agente, fecha) VALUES (%s, %s, %s, now())", ("FECHAS BLOQUEADAS", "Quitó la fecha bloqueada "+fecha_formateada, current_user.id))
+    mysql.connection.commit()
+    cursor.close()
+    return jsonify(True)
+
+@app.route("/configuracion/quitar-hora-bloqueada", methods=["POST"])
+@login_required
+def quitar_hora_bloqueada():
+    data = request.json
+    idhora = data.get("id")
+    hora_formateada = data.get("hora")
+    cursor = mysql.connection.cursor()
+    cursor.execute(f"DELETE FROM calendario_horas_bloqueadas WHERE id = %s;", (idhora,))
+    cursor.execute("INSERT INTO log (otro, movimiento, agente, fecha) VALUES (%s, %s, %s, now())", ("HORAS BLOQUEADAS", "Quitó la hora bloqueada "+hora_formateada, current_user.id))
     mysql.connection.commit()
     cursor.close()
     return jsonify(True)
@@ -2301,5 +2324,5 @@ def generar_reporte_leads():
 
 app.config.from_object(config['development'])
 
-if __name__ == "__main__":
-    app.run(port=5004, debug=True)
+#if __name__ == "__main__":
+    #app.run(port=5004, debug=True)
