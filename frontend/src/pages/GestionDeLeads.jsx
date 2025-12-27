@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import axios from 'axios';
 import './Gestiones.css';
@@ -318,7 +318,7 @@ const GestionDeLeads = () => {
                         <td>{lead.oficina}</td>
                         <td>{lead.referido}</td>
                         <td className="w-64 py-3">
-                            <div className="font-bold bg-gray-600 cursor-pointer hover:bg-gray-300 hover:text-gray-600 text-center w-full border rounded-xl text-white transition-all hover:border-gray-600" onClick={() => navigate(`/caso/${lead.idcaso}`)}>{lead.tipocaso}</div>
+                            <div className="font-bold bg-gray-600 cursor-pointer hover:bg-gray-300 hover:text-gray-600 text-center w-full border rounded-xl text-white transition-all hover:border-gray-600" onClick={() => navigate(`/caso/${lead.idcaso}`)}>{lead.idcaso} • {lead.tipocaso}</div>
                             <div className="text-xs text-center font-bold text-gray-600 my-1">{lead.subclase}</div>
                             <div className="italic text-xs text-center">Asginado a <span className="font-bold text-blue-600">{lead.asignado}</span></div>
                         </td>
@@ -326,10 +326,14 @@ const GestionDeLeads = () => {
                             <div className="flex items-center">
                             <div className="text-white font-bold text-center border rounded-xl w-48 mr-1" style={{ backgroundColor: '#'+lead.colorstatuscita }}>
                                 {lead.statuscita}
-                                
                             </div>  
                             <div className="relative group">
-                                    <div style={{ backgroundColor: '#'+lead.colorcalifica }} className="text-white text font-bold text-center border rounded-xl w-32">{lead.califica}</div>
+                                    <div style={{ backgroundColor: '#'+lead.colorcalifica }} className="text-white text font-bold text-center border rounded-xl w-32">
+                                        {lead.califica == "SI" && "SI CALIFICA"}
+                                        {lead.califica == "NO" && "NO CALIFICA"}
+                                        {lead.califica == "SIN CALIFICAR" && "SIN CALIFICAR"}
+                                        {lead.califica == "INFO BACK" && "INFO BACK"}
+                                    </div>
                                     {lead.motivo_califica && (
                                         <div className="absolute left-0 top-full mt-1 w-48 text-white text-xs italic rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity font-bold p-1" style={{ backgroundColor: '#'+lead.colorcalifica }}>
                                         {lead.motivo_califica}

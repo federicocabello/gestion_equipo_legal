@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
@@ -267,34 +267,28 @@ const Caso = () => {
                     });
         };
 
-        const handleVerDocumento = (idcaso, iddoc) => {
-            axios.get(`${backendUrl}/caso/${idcaso}/documento/${iddoc}`, { responseType: 'blob', withCredentials: true })
-            .then((response) => {
-                /*
-                SCRIP PARA DESCARGARLO DIRECMTAMENTE
-                const url = window.URL.createObjectURL(new Blob([response.data]));
-                const link = document.createElement('a');
-                link.href = url;
-                const contentDisposition = response.headers['content-disposition'];
-                const fileName = contentDisposition ? contentDisposition.split('filename=')[1] : 'documento.pdf';
-                link.setAttribute('download', fileName);
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-                */
+        const handleVerDocumento = async (idcaso, iddoc) => {
+    try {
+      setLoading(true);
 
-                const tipo = response.headers['content-type']; // MIME type correcto
-                const blob = new Blob([response.data], { type: tipo });
-                const url = window.URL.createObjectURL(blob);
-                window.open(url);
-                //const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
-                //window.open(url, '_blank');
-            })
-            .catch((error) => {
-                console.error("Error al obtener el documento:", error);
-                alert("Error al obtener el documento. Reintente.");
-            });
-        };
+      const response = await axios.get(`${backendUrl}/caso/${idcaso}/documento/${iddoc}`,
+        {
+          responseType: "blob",
+          withCredentials: true,
+        }
+      );
+
+      const tipo = response.headers["content-type"] || "application/pdf";
+      const blob = new Blob([response.data], { type: tipo });
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, "_blank");
+    } catch (error) {
+      console.error("Error al obtener el documento:", error);
+      alert("Error al obtener el documento. Reintente.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
         const handleChangeClasificacion = (id, nuevaClasificacion, idcaso, nombredoc) => {
             axios.post(`${backendUrl}/documento/${id}/editar-clasificacion`, { "clasificacion": nuevaClasificacion, "idcaso": idcaso, "nombredoc": nombredoc }, { withCredentials: true })
@@ -324,6 +318,21 @@ const Caso = () => {
                                 doc.iddoc === id ? { ...doc, nombre: nuevoNombre.toUpperCase()+".pdf" } : doc
                             )
                         );
+                    })
+                    .catch((error) => {
+                        console.error("Error al actualizar el nombre: ", error);
+                        alert("Error al actualizar el nombre. Reintente.");
+                    });
+            }
+        };
+
+        const toogleNuevaActualizacionPago = () => {
+            const nuevaActPago = prompt("Ingrese la nueva nota de pago: ");
+            if (nuevaActPago && nuevaActPago.trim() !== "") {
+                axios.post(`${backendUrl}/caso/actualizacion/nueva-pago`, { "nueva": nuevaActPago, "idcaso": id }, { withCredentials: true })
+                    .then((response) => {
+                        alert(response.data.mensaje);
+                        cargarSitioCaso();
                     })
                     .catch((error) => {
                         console.error("Error al actualizar el nombre: ", error);
@@ -393,6 +402,9 @@ const Caso = () => {
         axios.post(`${backendUrl}/caso/guardar-cita`, data, { withCredentials: true })
             .then((response) => {
                 alert(response.data.mensaje);
+                if (response.data.esresultado) {
+                    alert("⚠ Se modificó el resultado de la cita. Recuerde CALIFICAR esta lead.");
+                }
                 setIsEditing(false);
                 window.location.reload();
             })
@@ -508,9 +520,17 @@ const Caso = () => {
                         ["motivo_califica"]: motivo.trim().toUpperCase()
                     });
                 } else if (newCalifica == 1){
-                    const convertir = confirm("¿Desea convertir la consulta en un caso abierto? La página se recargará");
+                        setCaso({
+                            ...caso,
+                            ["idcalifica"]: newCalifica
+                        });
+                };
+            };
+
+            const handleConvertirCaso = (idcaso, idcliente) => {
+                const convertir = confirm("¿Desea convertir la consulta en un caso abierto? La página se recargará");
                     if (convertir == true){
-                        axios.post(`${backendUrl}/caso/convertir`, {"idcaso": idcaso, "idcliente": caso.idcliente}, { withCredentials: true })
+                        axios.post(`${backendUrl}/caso/convertir`, {"idcaso": idcaso, "idcliente": idcliente}, { withCredentials: true })
                             .then((response) => {
                                 alert(response.data.mensaje);
                                 window.location.reload();
@@ -520,14 +540,9 @@ const Caso = () => {
                                 alert("Error al convertir la consulta en un caso abierto. Reintente.");
                             });
                     } else {
-                        setCaso({
-                            ...caso,
-                            ["idcalifica"]: newCalifica
-                        });
+                        return;
                     }
-                };
-                
-            };
+                }
             
             const [registrarPagoVisible, setRegistrarPagoVisible] = useState(false);
             const [planDePagosVisible, setPlanDePagosVisible] = useState(false);
@@ -736,7 +751,16 @@ const Caso = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 0 0 .75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 0 0-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0 1 12 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 0 1-.673-.38m0 0A2.18 2.18 0 0 1 3 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 0 1 3.413-.387m7.5 0V5.25A2.25 2.25 0 0 0 13.5 3h-3a2.25 2.25 0 0 0-2.25 2.25v.894m7.5 0a48.667 48.667 0 0 0-7.5 0M12 12.75h.008v.008H12v-.008Z" />
                             </svg>
                             {caso.capturadedatos ? (
-                              <span>Consulta</span>
+                                <span className="flex items-center">
+                                    <span className="mr-5">Consulta</span>
+                                    <span className=" flex justify-center text-xs text-green-500 border border-green-500 rounded p-1 hover:bg-green-500 hover:text-white cursor-pointer transition-all" onClick={() => handleConvertirCaso(caso.idcaso, caso.idcliente)}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-4 mr-1">
+                                            <path fillRule="evenodd" d="M14.615 1.595a.75.75 0 0 1 .359.852L12.982 9.75h7.268a.75.75 0 0 1 .548 1.262l-10.5 11.25a.75.75 0 0 1-1.272-.71l1.992-7.302H3.75a.75.75 0 0 1-.548-1.262l10.5-11.25a.75.75 0 0 1 .913-.143Z" clipRule="evenodd" />
+                                        </svg>
+                                        ABRIR CASO
+                                    </span>
+                                </span>
+                              
                             ) : (
                               <span>Caso</span>  
                             )}
@@ -846,10 +870,10 @@ const Caso = () => {
                                                 </button>
                                                 </div>
                                                 {mostrarNuevaActualizacion && (
-                                                <div className="flex items-center mt-5">
-                                                    <button className={`${loading || !nuevaActualizacion.trim() ? 'btn-guardar bg-transparent border-gray-300 text-gray-300 hover:bg-transparent mr-2': 'btn-guardar mr-2 bg-emerald-500 hover:bg-emerald-700 transition-all'}`} onClick={handleAddActualizacion} disabled={loading || !nuevaActualizacion.trim()}>{loading ? 'Cargando...' : 'Enviar'}</button>
-                                                    <textarea className="text-sm border rounded w-full p-2 h-24" ref={textareaRef} onChange={(e) => setNuevaActualizacion(e.target.value)}></textarea>
-                                                </div>
+                                                    <div className="flex items-center mt-5">
+                                                        <button className={`${loading || !nuevaActualizacion.trim() ? 'btn-guardar bg-transparent border-gray-300 text-gray-300 hover:bg-transparent mr-2': 'btn-guardar mr-2 bg-emerald-500 hover:bg-emerald-700 transition-all'}`} onClick={handleAddActualizacion} disabled={loading || !nuevaActualizacion.trim()}>{loading ? 'Cargando...' : 'Enviar'}</button>
+                                                        <textarea className="text-sm border rounded w-full p-2 h-24" ref={textareaRef} onChange={(e) => setNuevaActualizacion(e.target.value)}></textarea>
+                                                    </div>
                                             )}
                                             {actualizaciones.map((item) => (
                                             <div key={item.id} className="my-3 rounded-xl border-2 bg-white" hidden={item.deleted == 1 && rol != "superadmin"}>
@@ -882,7 +906,7 @@ const Caso = () => {
                                                         )}
                                                         {item.deleted == 0 && rol == "superadmin" && (
                                                             <span className="ml-auto" title="Eliminar actualización" onClick={(e) => {e.stopPropagation(); deleteActualizacion(item.id);}}>
-                                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 hover:text-black transition-all">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 hover:text-red-500 transition-all cursor-pointer">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
                                                                 </svg>
                                                             </span>
@@ -1097,16 +1121,20 @@ const Caso = () => {
                                 {documentos.map((docq) => (
                                     <tr className="border hover:bg-white" key={docq.iddoc}>
                                         <td className="p-2 w-10">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 cursor-pointer hover:size-6 hover:text-amber-700 transition-all" onClick={() => handleVerDocumento(id, docq.iddoc)}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-                                        </svg>
+                                            <span title="Ver documento">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 cursor-pointer hover:size-6 hover:text-amber-700 transition-all" onClick={() => handleVerDocumento(id, docq.iddoc)}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                                                </svg>
+                                            </span>
                                         </td>       
                                         <td className="p-2 font-bold text-amber-700">
                                             <div className="flex items-center">   
                                             {rol != "user" && (
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 hover:size-6 cursor-pointer mr-1 transition-all" onClick={() => handleEditarNombre(docq.iddoc, docq.nombre, caso.idcaso)}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
-                                              </svg>
+                                                <span title="Renombrar documento">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 hover:size-6 cursor-pointer mr-1 transition-all" onClick={() => handleEditarNombre(docq.iddoc, docq.nombre, caso.idcaso)}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                                                    </svg>
+                                              </span>
                                             )}             
                                             {docq.nombre}
                                             </div>
@@ -1118,17 +1146,21 @@ const Caso = () => {
                                                 ))}
                                             </select>
                                             {rol != "user" && (
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 cursor-pointer hover:size-6 hover:text-black transition-all text-gray-600 ml-1" onClick={() => handleEnableSelect(docq.iddoc)}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
-                                        </svg>
+                                                <span title="Cambiar clasificación">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 cursor-pointer hover:size-6 hover:text-black transition-all text-gray-600 ml-1" onClick={() => handleEnableSelect(docq.iddoc)}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                                                    </svg>
+                                                </span>
                                             )}
                                         </td>
                                         <td className="p-2 w-96">{docq.creador}{docq.fecha}</td>
                                         {rol == "superadmin" && (
                                             <td className="p-2 w-10">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 hover:size-6 hover:text-red-500 transition-all cursor-pointer" onClick={() => handleDocEliminar(docq.iddoc, rol, caso.idcaso, docq.nombre)} >
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                                                </svg>
+                                                <span title="Eliminar documento">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 hover:size-6 hover:text-red-500 transition-all cursor-pointer" onClick={() => handleDocEliminar(docq.iddoc, rol, caso.idcaso, docq.nombre)} >
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                                    </svg>
+                                                </span>
                                             </td>
                                         )}
                                     </tr>
@@ -1143,6 +1175,11 @@ const Caso = () => {
                             Este caso no tiene documentos cargados.
                         </p>
                     )}
+                    {loading && (
+            <div className="fixed inset-0 flex justify-center items-center bg-gray-500/40 backdrop-blur-sm z-50 h-full w-full">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-500"></div>
+            </div>
+          )}
                 </TabPanel>
 
                 <TabPanel>
@@ -1295,7 +1332,7 @@ const Caso = () => {
                                     </div>
                                 )}
                                 
-                                {pagosNo.length > 0 && pagosControl.ncuota > 0 && (
+                                {pagosNo.length > 0 && pagosControl.ncuota > 0 ? (
                                     <div className="w-1/3 mr-5">
                                     <table className="shadow-lg w-full">
                                         <thead>
@@ -1347,6 +1384,15 @@ const Caso = () => {
                                             ))}
                                         </tbody>
                                     </table>
+                                    </div>
+                                ) : (
+                                    <div className="mr-5">
+                                        <button className="btn-guardar flex items-center justify-center bg-amber-400 hover:text-white hover:bg-amber-500" onClick={()=>setAbrirModal(true)}>
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 mr-1">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                            </svg>
+                                            <span>AGREGAR PRÓXIMOS PAGOS</span>
+                                        </button>
                                     </div>
                                 )}
                                 {abrirModal && <ModalModPagos onClose={()=>(cerrarModalProximoPago())} idControl={caso.idcontrol} />}
@@ -1508,10 +1554,16 @@ const Caso = () => {
                                         <path strokeLinecap="round" strokeLinejoin="round" d="m7.875 14.25 1.214 1.942a2.25 2.25 0 0 0 1.908 1.058h2.006c.776 0 1.497-.4 1.908-1.058l1.214-1.942M2.41 9h4.636a2.25 2.25 0 0 1 1.872 1.002l.164.246a2.25 2.25 0 0 0 1.872 1.002h2.092a2.25 2.25 0 0 0 1.872-1.002l.164-.246A2.25 2.25 0 0 1 16.954 9h4.636M2.41 9a2.25 2.25 0 0 0-.16.832V12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 12V9.832c0-.287-.055-.57-.16-.832M2.41 9a2.25 2.25 0 0 1 .382-.632l3.285-3.832a2.25 2.25 0 0 1 1.708-.786h8.43c.657 0 1.281.287 1.709.786l3.284 3.832c.163.19.291.404.382.632M4.5 20.25h15A2.25 2.25 0 0 0 21.75 18v-2.625c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125V18a2.25 2.25 0 0 0 2.25 2.25Z" />
                                     </svg>
                                     <span>Actualizaciones</span>
+                                    <button type="button" className="btn-guardar bg-amber-200 text-gray-500 hover:text-black hover:bg-amber-300 flex items-center ml-5" onClick={toogleNuevaActualizacionPago}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4 mr-1">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                                        </svg>
+                                        Nueva actualización
+                                    </button>
                                 </div>
                                 <hr className="my-4"/>
                                 {actualizaciones.map((item) => (
-                                    item.esresultado == 2 && (
+                                    item.esresultado == 2 && item.deleted == 0 && (
                                             <div key={item.id} className="my-3 rounded-xl border-2 bg-white">
                                                     <div className="text-gray-700 p-2 text-sm flex items-center rounded-xl cursor-pointer bg-amber-200" onClick={() => toggleExpand(item.id)}>
                                                         {!expandedItems[item.id] ? (
@@ -1525,6 +1577,13 @@ const Caso = () => {
                                                         )}
                                                         {item.creado} <span className="ml-1 font-bold">{item.agente}</span>
                                                         <span className="ml-1 font-bold text-white bg-green-500 px-2 rounded-full border">PAGO</span>
+                                                        {rol == "superadmin" && (
+                                                            <span className="ml-auto" title="Eliminar actualización" onClick={(e) => {e.stopPropagation(); deleteActualizacion(item.id);}}>
+                                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 hover:text-red-500 transition-all cursor-pointer">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                                                </svg>
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     {expandedItems[item.id] && (
                                                         <div className="p-2">

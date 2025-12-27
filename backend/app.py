@@ -26,7 +26,7 @@ load_dotenv()
 backend_url = os.getenv("BACKEND_URL")
 
 app = Flask(__name__, static_folder="static")
-app.secret_key = "B!1w8NAt1T^%kvhUI*S^"
+app.secret_key = "B!1w6NAt1T^%kvhUI*S^f"
 CORS(app, supports_credentials=True, origins=backend_url)
 
 mysql = MySQL(app)
@@ -157,6 +157,13 @@ def capturaDeDatos():
     rows = cursor.fetchall()
     schedule = [{"hour": row[0], "maxAppointments": row[1]} for row in rows]
     
+    cursor.execute("SELECT DATE_FORMAT(fecha, '%Y-%m-%d'), CONCAT(hora) FROM calendario_horas_bloqueadas;")
+    fechas_horas_bloqueadas = cursor.fetchall()
+    fechas_horas_bloqueadas = [{"fecha": a[0], "hora": a[1]} for a in fechas_horas_bloqueadas]
+    
+    cursor.execute(f"SELECT rol FROM auth WHERE id = {current_user.id}")
+    rol = cursor.fetchone()
+    
     cursor.close()
     resultados = {
         "oficina": oficina,
@@ -167,10 +174,10 @@ def capturaDeDatos():
         "asesores": asesores,
         "fechas_bloqueadas": fechas_bloqueadas,
         "subclase": subclase,
-        "schedule": schedule
+        "schedule": schedule,
+        "rol": rol,
+        "fechas_horas_bloqueadas": fechas_horas_bloqueadas
     }
-    
-    
     
     return jsonify(resultados)
 
@@ -264,6 +271,24 @@ def gestionDeLeads():
         "califica": califica
     }
     return jsonify({"resultados": resultados, "selects": selects, "rol": rol})
+
+@app.route("/reportes", methods=["GET", "POST"])
+@login_required
+def reportes():
+    data = request.json
+    fecha = data.get("fecha")
+    cursor = mysql.connection.cursor()
+    cursor.execute("""SELECT pagos.id AS idpago, pagos.fecha, pagos.monto, pagos_tipo.tipo, pagos_metodo.metodo, pagos.nombretipopago, pagos.pagado, auth.fullname, casos.id, casos.caso, clientes.nombre FROM pagos JOIN pagos_control ON pagos_control.id=pagos.control JOIN clientes ON clientes.id=pagos_control.cliente JOIN casos ON casos.id=pagos_control.caso JOIN pagos_tipo ON pagos_tipo.id=pagos.tipo JOIN pagos_metodo ON pagos_metodo.id=pagos.metodo JOIN auth ON pagos.agente = auth.id WHERE pagado > 0 AND pagos.fecha = %s
+
+UNION ALL 
+
+SELECT pagos_independientes.id AS idpago, pagos_independientes.fecha, pagos_independientes.monto, pagos_tipo.tipo, pagos_metodo.metodo, pagos_independientes.nombretipopago, 4, auth.fullname, casos.id, casos.caso, clientes.nombre FROM pagos_independientes JOIN clientes ON clientes.id=pagos_independientes.cliente JOIN casos ON casos.id=pagos_independientes.caso JOIN pagos_tipo ON pagos_tipo.id=pagos_independientes.tipo JOIN pagos_metodo ON pagos_metodo.id=pagos_independientes.metodo JOIN auth ON pagos_independientes.agente = auth.id WHERE pagos_independientes.fecha = %s;
+    """, (fecha, fecha))
+    reporte_pagos = cursor.fetchall()
+    reporte_pagos = [{"idpago": a[0], "fecha": a[1], "monto": float(a[2]), "tipo": a[3], "metodo": a[4], "nombretipopago": a[5], "pagado": a[6], "agente": a[7], "idcaso": a[8], "caso": a[9], "cliente": a[10]} for a in reporte_pagos]
+    total = float(sum(pago["monto"] for pago in reporte_pagos))
+    cursor.close()
+    return jsonify({"reporte_pagos": reporte_pagos, "total": total})
 
 @app.route("/gestion-de-leads/eliminar", methods=["POST"])
 @login_required
@@ -376,6 +401,18 @@ def opcionesAgregar():
     mysql.connection.commit()
     cursor.close()
     return jsonify({"mensaje": "✅ Datos de "+nombre+" registrados con éxito.", "status": 200})
+
+@app.route("/calendario/bloquear-hora", methods=["POST"])
+@login_required
+def bloquearHoraCalendario():
+    data = request.json
+    fecha = data.get("fecha")
+    hora = data.get("hora")
+    cursor = mysql.connection.cursor()
+    cursor.execute("INSERT INTO calendario_horas_bloqueadas (hora, fecha) VALUES ( %s, %s)", (hora, fecha))
+    mysql.connection.commit()
+    cursor.close()
+    return jsonify({"mensaje": "✅ Hora bloqueada correctamente."})
 
 @app.route("/consultas/nueva", methods=["POST"])
 @login_required
@@ -773,9 +810,11 @@ def caso_guardar_cita():
     cursor = mysql.connection.cursor()
     cursor.execute("SELECT resultado, caso from citas WHERE id = %s", (idcita,))
     resultado_anterior = cursor.fetchone()
+    condicional_resultado = False
     if resultado_anterior[0] != resultado:
         cursor.execute("INSERT INTO casos_actualizaciones (idcaso, creado, actualizacion, agente, esresultado) VALUES (%s, now(), %s, %s, 1)", (resultado_anterior[1], resultado, current_user.id))
         cursor.execute("INSERT INTO log (cita, movimiento, agente, fecha) VALUES (%s, %s, %s, now())", (idcita, "Agregó el resultado de la cita.", current_user.id))
+        condicional_resultado = True
     cursor.execute("UPDATE citas SET fecha = %s, hora = %s, tipo = %s, status = %s, razon = %s, resultado = %s, asignado = %s, motivo_cancelacion = %s WHERE id = %s", (fecha, hora, tipocita, statuscita, razon, resultado, asignado, motivo_cancelacion, idcita))
     cursor.execute("INSERT INTO log (cita, movimiento, agente, fecha) VALUES (%s, %s, %s, now())", (idcita, "Actualizó los datos de la cita.", current_user.id))
     mysql.connection.commit()
@@ -783,11 +822,11 @@ def caso_guardar_cita():
     # Convertir fecha y hora a objetos datetime
     fecha_obj = datetime.strptime(fecha, "%Y-%m-%d")
     hora_obj = datetime.strptime(hora, "%H:%M:%S")
-
     # Formatear fecha y hora
     fecha_formateada = fecha_obj.strftime("%m/%d/%Y")
     hora_formateada = hora_obj.strftime("%I:%M %p")
-    return jsonify({"mensaje": "✅ Cita actualizada correctamente para el "+fecha_formateada+" a las "+hora_formateada})
+    
+    return jsonify({"mensaje": "✅ Cita actualizada correctamente para el "+fecha_formateada+" a las "+hora_formateada, "esresultado": condicional_resultado})
 
 @app.route("/caso/nueva-cita", methods=["POST"])
 @login_required
@@ -826,6 +865,21 @@ def nueva_actualizacion_caso():
     cursor.close()
     return jsonify({"mensaje": "✅ Actualización de "+current_user.fullname+" guardada correctamente."})
 
+@app.route("/caso/actualizacion/nueva-pago", methods=["POST"])
+@login_required
+def nueva_actualizacion_caso_pago():
+    datos = request.json
+    id = datos.get("idcaso")
+    actualizacion = datos.get("nueva").strip().upper()
+    cursor = mysql.connection.cursor()
+    cursor.execute("INSERT INTO casos_actualizaciones (idcaso, creado, actualizacion, agente, esresultado) VALUES (%s, now(), %s, %s, 2)", (id, actualizacion, current_user.id))
+    if current_user.id == 11 or current_user.id == 17 or current_user.id == 16 or current_user.id == 14:
+        cursor.execute("UPDATE pagos_control SET ultima_gestion_cobros = now() WHERE caso = %s", (id,))
+    cursor.execute("INSERT INTO log (caso, movimiento, agente, fecha) VALUES (%s, %s, %s, now())", (id, "Agregó una actualización de pago del caso.", current_user.id))
+    mysql.connection.commit()
+    cursor.close()
+    return jsonify({"mensaje": "✅ Actualización de pago guardada correctamente."})
+
 @app.route("/pagos/nuevo-proximo-pago", methods=["POST"])
 @login_required
 def nuevo_proximo_pago():
@@ -855,6 +909,9 @@ def caso_pago_control_actualizar():
     datos = request.json
     cursor = mysql.connection.cursor()
     cursor.execute("UPDATE pagos_control SET cartasenviadas = %s, estado = %s WHERE id = %s", (datos.get("cartas"), datos.get("estado"), datos.get("idpago")))
+    cursor.execute("UPDATE pagos_control SET ultima_gestion_cobros = now() WHERE caso = %s", (datos.get("idcaso"),))
+    if current_user.id == 11 or current_user.id == 17 or current_user.id == 16 or current_user.id == 14:
+        cursor.execute("UPDATE pagos_control SET ultima_gestion_cobros = now() WHERE caso = %s", (id,))
     cursor.execute("INSERT INTO log (caso, movimiento, agente, fecha, otro) VALUES (%s, %s, %s, now(), 'PAGOS')", (datos.get("idcaso"), "Actualizó los datos de control de pagos.", current_user.id))
     mysql.connection.commit()
     cursor.close()
@@ -1191,6 +1248,10 @@ def configuracion():
     horas = cursor.fetchall()
     horas = [{"idhora": a[0], "hora": a[1], "cant": a[2]} for a in horas]
     
+    cursor.execute("SELECT id, DATE_FORMAT(hora, '%h:%m %p'), DATE_FORMAT(fecha, '%M %d, %Y') FROM calendario_horas_bloqueadas ORDER BY fecha;")
+    horas_bloqueadas = cursor.fetchall()
+    horas_bloqueadas = [{"id": a[0], "hora": a[1], "fecha": a[2]} for a in horas_bloqueadas]
+    
     cursor.close()
     menuconfig = {
         "fechasBloqueadas": fechasBloqueadas,
@@ -1201,7 +1262,8 @@ def configuracion():
         "tipoCita": tipoCita,
         "statusCita": statusCita,
         "estadosPagos": estadosPagos,
-        "horas": horas
+        "horas": horas,
+        "horasBloqueadas": horas_bloqueadas
     }
     return jsonify(menuconfig)
 
@@ -1227,6 +1289,19 @@ def quitar_flecha_bloqueada():
     cursor = mysql.connection.cursor()
     cursor.execute(f"DELETE FROM calendario_fechas_bloqueadas WHERE fecha = '{fecha_formateada}';")
     cursor.execute("INSERT INTO log (otro, movimiento, agente, fecha) VALUES (%s, %s, %s, now())", ("FECHAS BLOQUEADAS", "Quitó la fecha bloqueada "+fecha_formateada, current_user.id))
+    mysql.connection.commit()
+    cursor.close()
+    return jsonify(True)
+
+@app.route("/configuracion/quitar-hora-bloqueada", methods=["POST"])
+@login_required
+def quitar_hora_bloqueada():
+    data = request.json
+    idhora = data.get("id")
+    hora_formateada = data.get("hora")
+    cursor = mysql.connection.cursor()
+    cursor.execute(f"DELETE FROM calendario_horas_bloqueadas WHERE id = %s;", (idhora,))
+    cursor.execute("INSERT INTO log (otro, movimiento, agente, fecha) VALUES (%s, %s, %s, now())", ("HORAS BLOQUEADAS", "Quitó la hora bloqueada "+hora_formateada, current_user.id))
     mysql.connection.commit()
     cursor.close()
     return jsonify(True)
@@ -1471,8 +1546,14 @@ def buscarEnBaseAntigua():
                 IFNULL(contacts.primary_address_city, '') AS direccion,
                 IFNULL(contacts.primary_address_state, '') AS direccion_estado,
                 IFNULL(contacts.primary_address_country, '') AS ciudad,
-                IFNULL(contacts.lead_source, '') AS lead_source
-            FROM suite_dotgital.contacts_cases_1_c LEFT JOIN suite_dotgital.cases ON suite_dotgital.contacts_cases_1_c.contacts_cases_1cases_idb = suite_dotgital.cases.id LEFT JOIN suite_dotgital.contacts ON suite_dotgital.contacts_cases_1_c.contacts_cases_1contacts_ida=suite_dotgital.contacts.id WHERE CONCAT(contacts.first_name, ' ', contacts.last_name) LIKE %s OR cases.description LIKE %s ORDER BY nombre_cliente, ncaso;"""
+                IFNULL(contacts.primary_address_postalcode, '') AS cp,
+                IFNULL(contacts.lead_source, '') AS lead_source,
+                CONCAT(TRIM(d_ben_beneficiary.first_name), ' ', TRIM(d_ben_beneficiary.last_name)) AS beneficiario_nombre,
+                IFNULL(d_ben_beneficiary.phone_home, '') AS beneficiario_tel1,
+                IFNULL(d_ben_beneficiary.phone_mobile, '') AS beneficiario_tel2,
+                IFNULL(d_ben_beneficiary.phone_work, '') AS beneficiario_tel3,
+                IFNULL(d_ben_beneficiary.phone_other, '') AS beneficiario_tel4
+            FROM suite_dotgital.contacts_cases_1_c LEFT JOIN suite_dotgital.cases ON suite_dotgital.contacts_cases_1_c.contacts_cases_1cases_idb = suite_dotgital.cases.id LEFT JOIN suite_dotgital.contacts ON suite_dotgital.contacts_cases_1_c.contacts_cases_1contacts_ida=suite_dotgital.contacts.id LEFT JOIN suite_dotgital.cases_d_ben_beneficiary_1_c ON suite_dotgital.cases_d_ben_beneficiary_1_c.cases_d_ben_beneficiary_1cases_ida = suite_dotgital.cases.id LEFT JOIN suite_dotgital.d_ben_beneficiary ON suite_dotgital.d_ben_beneficiary.id = suite_dotgital.cases_d_ben_beneficiary_1_c.cases_d_ben_beneficiary_1d_ben_beneficiary_idb WHERE CONCAT(suite_dotgital.contacts.first_name, ' ', suite_dotgital.contacts.last_name) LIKE %s OR suite_dotgital.cases.description LIKE %s ORDER BY nombre_cliente, ncaso;"""
         cursor.execute(sql, ("%" + termino + "%", "%" + termino + "%"))
     if condicional == "ncaso":
         cursor.execute("""SELECT 
@@ -1491,8 +1572,14 @@ def buscarEnBaseAntigua():
                 IFNULL(contacts.primary_address_city, '') AS direccion,
                 IFNULL(contacts.primary_address_state, '') AS direccion_estado,
                 IFNULL(contacts.primary_address_country, '') AS ciudad,
-                IFNULL(contacts.lead_source, '') AS lead_source
-            FROM suite_dotgital.contacts_cases_1_c LEFT JOIN suite_dotgital.cases ON suite_dotgital.contacts_cases_1_c.contacts_cases_1cases_idb = suite_dotgital.cases.id LEFT JOIN suite_dotgital.contacts ON suite_dotgital.contacts_cases_1_c.contacts_cases_1contacts_ida=suite_dotgital.contacts.id WHERE cases.case_number = %s ORDER BY nombre_cliente, ncaso;""", (data.get("dato", ""),))
+                IFNULL(contacts.primary_address_postalcode, '') AS cp,
+                IFNULL(contacts.lead_source, '') AS lead_source,
+                CONCAT(TRIM(d_ben_beneficiary.first_name), ' ', TRIM(d_ben_beneficiary.last_name)) AS beneficiario_nombre,
+                IFNULL(d_ben_beneficiary.phone_home, '') AS beneficiario_tel1,
+                IFNULL(d_ben_beneficiary.phone_mobile, '') AS beneficiario_tel2,
+                IFNULL(d_ben_beneficiary.phone_work, '') AS beneficiario_tel3,
+                IFNULL(d_ben_beneficiary.phone_other, '') AS beneficiario_tel4
+            FROM suite_dotgital.contacts_cases_1_c LEFT JOIN suite_dotgital.cases ON suite_dotgital.contacts_cases_1_c.contacts_cases_1cases_idb = suite_dotgital.cases.id LEFT JOIN suite_dotgital.contacts ON suite_dotgital.contacts_cases_1_c.contacts_cases_1contacts_ida=suite_dotgital.contacts.id LEFT JOIN suite_dotgital.cases_d_ben_beneficiary_1_c ON suite_dotgital.cases_d_ben_beneficiary_1_c.cases_d_ben_beneficiary_1cases_ida = suite_dotgital.cases.id LEFT JOIN suite_dotgital.d_ben_beneficiary ON suite_dotgital.d_ben_beneficiary.id = suite_dotgital.cases_d_ben_beneficiary_1_c.cases_d_ben_beneficiary_1d_ben_beneficiary_idb WHERE suite_dotgital.cases.case_number = %s ORDER BY nombre_cliente, ncaso;""", (data.get("dato", ""),))
     resultados = cursor.fetchall()
     resultados = [{
                 "ncaso": r[0],
@@ -1510,7 +1597,13 @@ def buscarEnBaseAntigua():
                 "direccion": r[12],
                 "direccion_estado": r[13],
                 "ciudad": r[14],
-                "lead_source": r[15]
+                "cp": r[15],
+                "lead_source": r[16],
+                "beneficiario_nombre": r[17],
+                "beneficiario_tel1": r[18],
+                "beneficiario_tel2": r[19],
+                "beneficiario_tel3": r[20],
+                "beneficiario_tel4": r[21]
             } for r in resultados]
     mysql.connection.commit()
     cursor.close()
@@ -1542,17 +1635,107 @@ def cobros(estado, desde, hasta):
     estados = [{"id": a[0], "estado": a[1]} for a in cursor.fetchall()]
 
     params, where = [], []
+    date_filter = ""
+    exists_filter = ""
+    exists_params = []
+
     if desde and hasta:
-        where.append("pagos.fecha BETWEEN %s AND %s")
+        date_filter = " AND p.fecha BETWEEN %s AND %s"
+        exists_filter = " AND p2.fecha BETWEEN %s AND %s"
         params += [desde, hasta]
+        exists_params += [desde, hasta]
+    elif desde:
+        date_filter = " AND p.fecha >= %s"
+        exists_filter = " AND p2.fecha >= %s"
+        params.append(desde)
+        exists_params.append(desde)
+    elif hasta:
+        date_filter = " AND p.fecha <= %s"
+        exists_filter = " AND p2.fecha <= %s"
+        params.append(hasta)
+        exists_params.append(hasta)
+
     if estado is not None:
-        where.append("pagos_control.estado = %s")
+        where.append("pc.estado = %s")
         params.append(estado)
+
+    if exists_filter:
+        where.append(f"""
+            EXISTS (
+            SELECT 1
+            FROM pagos p2
+            WHERE p2.control = pc.id
+                AND p2.pagado IN (1,2,3)
+                {exists_filter}
+            )
+        """)
+        params += exists_params
 
     where_sql = ("WHERE " + " AND ".join(where)) if where else ""
 
-    sql = f"SELECT pagos_control.id, pagos_estados.estado, pagos_estados.id, pagos_estados.colorestado, pagos_control.cartasenviadas, casos.id, casos.caso, clientes.id, clientes.nombre, pagos_control.valor-pagos_control.entrega-(SELECT SUM(p.monto) FROM pagos p WHERE p.control = pagos_control.id AND p.pagado = 1) AS total_no_pagados FROM pagos LEFT JOIN pagos_control ON pagos_control.id = pagos.control JOIN casos ON casos.id = pagos_control.caso JOIN clientes ON clientes.id = pagos_control.cliente JOIN pagos_estados ON pagos_estados.id = pagos_control.estado {where_sql} GROUP BY pagos.control ORDER BY pagos_control.fecha DESC;"
+    sql = f"""
+    SELECT
+    pc.id,
+    pe.estado,
+    pe.id AS estado_id,
+    pe.colorestado,
+    pc.cartasenviadas,
+    c.id  AS caso_id,
+    c.caso,
+    cl.id AS cliente_id,
+    cl.nombre,
+    (pc.valor - pc.entrega - COALESCE(pagados.total_pagado, 0)) AS total_no_pagado,
+    DATE_FORMAT(pc.ultima_gestion_cobros, "%%m/%%d/%%Y")
+    FROM pagos_control pc
+    JOIN casos         c  ON c.id  = pc.caso
+    JOIN clientes      cl ON cl.id = pc.cliente
+    JOIN pagos_estados pe ON pe.id = pc.estado
+    LEFT JOIN (
+    SELECT p.control, SUM(p.monto) AS total_pagado
+    FROM pagos p
+    WHERE p.pagado = 1 OR p.pagado = 3 {date_filter}
+    GROUP BY p.control
+    ) pagados ON pagados.control = pc.id
+    {where_sql}
+    ORDER BY pc.ultima_gestion_cobros ASC, pc.fecha DESC;
+    """
+    
+    sql = f"""
+    SELECT
+    pc.id,
+    pe.estado,
+    pe.id AS estado_id,
+    pe.colorestado,
+    pc.cartasenviadas,
+    c.id  AS caso_id,
+    c.caso,
+    cl.id AS cliente_id,
+    cl.nombre,
+    (pc.valor - pc.entrega - COALESCE(pagados.total_pagado, 0)) AS total_no_pagado,
+    DATE_FORMAT(pc.ultima_gestion_cobros, "%%m/%%d/%%Y") AS ultima_gestion_cobros,
+    DATE_FORMAT(ultpago.ultima_fecha_pago, "%%m/%%d/%%Y") AS ultima_fecha_pago
+FROM pagos_control pc
+JOIN casos         c  ON c.id  = pc.caso
+JOIN clientes      cl ON cl.id = pc.cliente
+JOIN pagos_estados pe ON pe.id = pc.estado
+LEFT JOIN (
+    SELECT p.control, SUM(p.monto) AS total_pagado
+    FROM pagos p
+    WHERE p.pagado IN (1,2,3) {date_filter}
+    GROUP BY p.control
+) pagados ON pagados.control = pc.id
+LEFT JOIN (
+    SELECT p.control, MAX(p.fecha) AS ultima_fecha_pago
+    FROM pagos p
+    WHERE p.pagado IN (1,2,3) {date_filter}
+    GROUP BY p.control
+) ultpago ON ultpago.control = pc.id
+{where_sql}
+ORDER BY pc.ultima_gestion_cobros ASC, pc.fecha DESC;
+    """
+
     cursor.execute(sql, params)
+
     filas = cursor.fetchall()
     cobros = [{
             "idcontrol":      r[0],
@@ -1565,6 +1748,8 @@ def cobros(estado, desde, hasta):
             "id_cliente":     r[7],
             "cliente":        r[8],
             "total_no_pagados": float(r[9]) if r[9] is not None else 0.0,
+            "ultima_gestion_cobros": r[10],
+            "ultima_fecha_pago": r[11]
         } for r in filas]
     cursor.close()
     data = {
@@ -1684,6 +1869,9 @@ def cobros_cambiar_estado():
     idestado = data.get("idestado")
     cursor = mysql.connection.cursor()
     cursor.execute("UPDATE pagos_control SET estado = %s WHERE id = %s", (idestado, idpago))
+    cursor.execute("UPDATE pagos_control SET ultima_gestion_cobros = current_date() WHERE id = %s", (idpago,))
+    if current_user.id == 11 or current_user.id == 17 or current_user.id == 16 or current_user.id == 14:
+        cursor.execute("UPDATE pagos_control SET ultima_gestion_cobros = now() WHERE caso = %s", (id,))
     mysql.connection.commit()
     cursor.close()
     return jsonify({"mensaje": "✅ Estado de pago actualizado correctamente."})
@@ -2092,9 +2280,9 @@ def leer_csv():
 
 @app.route('/generar-reporte-mes/<int:mes>')
 @login_required
-def generar_reporte(mes):
+def generar_reporte_mes(mes):
     cursor = mysql.connection.cursor()
-    query = "select citas.fecha AS Fecha, CONCAT(citas.hora) AS Hora, clientes.clasificacion AS 'Tipo de cliente', citas.caso AS Caso, fk_oficina.oficina AS Oficina, clientes.nombre AS 'Nombre del cliente', fk_status_cita.statuscita AS Status, fk_tipo_caso.tipocaso AS 'Tipo caso', fk_tipo_cita.tipocita AS 'Tipo cita', clientes.telefono1 AS 'Telefono 1', clientes.telefono2 AS 'Telefono 2', fk_referido.referido AS 'Como llegó a nosotros', auth.fullname AS 'Quien agendó' FROM citas JOIN clientes ON clientes.id = citas.cliente JOIN fk_oficina ON fk_oficina.id=clientes.oficina JOIN fk_status_cita ON fk_status_cita.id = citas.status JOIN casos ON casos.idcliente = clientes.id JOIN fk_tipo_caso ON fk_tipo_caso.id = casos.tipo JOIN fk_tipo_cita ON fk_tipo_cita.id = citas.tipo JOIN fk_referido ON fk_referido.id = clientes.referido JOIN auth ON auth.id = citas.creador WHERE MONTH(citas.fecha) = %s GROUP BY citas.id ORDER BY citas.fecha, citas.hora;"
+    query = "select citas.fecha AS Fecha, CONCAT(citas.hora) AS Hora, clientes.clasificacion AS 'Tipo de cliente', citas.caso AS Caso, clientes.ciudad AS Ciudad, clientes.nombre AS 'Nombre del cliente', fk_status_cita.statuscita AS Status, fk_tipo_caso.tipocaso AS 'Tipo caso', fk_tipo_cita.tipocita AS 'Tipo cita', clientes.telefono1 AS 'Telefono 1', clientes.telefono2 AS 'Telefono 2', fk_referido.referido AS 'Como llegó a nosotros', auth.fullname AS 'Quien agendó' FROM citas JOIN clientes ON clientes.id = citas.cliente JOIN fk_status_cita ON fk_status_cita.id = citas.status JOIN casos ON casos.idcliente = clientes.id JOIN fk_tipo_caso ON fk_tipo_caso.id = casos.tipo JOIN fk_tipo_cita ON fk_tipo_cita.id = citas.tipo JOIN fk_referido ON fk_referido.id = clientes.referido JOIN auth ON auth.id = citas.creador WHERE MONTH(citas.fecha) = %s GROUP BY citas.id ORDER BY citas.fecha, citas.hora;"
     cursor.execute(query, (mes,))
     df = pd.read_sql(query, mysql.connection, params=(mes,))
 
@@ -2111,8 +2299,52 @@ def generar_reporte(mes):
                      download_name=nombre_archivo,
                      as_attachment=True,
                      mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    
+@app.route('/generar-reporte-leads')
+@login_required
+def generar_reporte_leads():
+    cursor = mysql.connection.cursor()
+    query = "SELECT clientes.nombre AS nombrec, clientes.telefono1 AS telefono1, clientes.telefono2 AS telefono2, clientes.pertenecetel2 AS pertenecetel2, fk_oficina.oficina AS oficina, fk_referido.referido AS referido, casos.id AS idcaso, fk_tipo_caso.tipocaso AS tipocaso, fk_status_cita.statuscita AS statuscita, citas.razon AS razoncita, auth_asignado.fullname AS asignado, califica.califica AS califica, DATE_FORMAT(casos.fecha, '%m/%d/%Y') AS fecha, auth_creador.fullname AS creador, tipo_caso_subclase.subclase AS subclase, casos.motivo_califica FROM casos LEFT JOIN clientes ON clientes.id = casos.idcliente LEFT JOIN citas ON citas.caso = casos.id LEFT JOIN fk_status_cita ON citas.status=fk_status_cita.id LEFT JOIN auth AS auth_creador ON auth_creador.id=clientes.creador LEFT JOIN auth AS auth_asignado ON auth_asignado.id=casos.asignado LEFT JOIN fk_oficina ON fk_oficina.id=clientes.oficina LEFT JOIN fk_referido ON fk_referido.id=clientes.referido LEFT JOIN fk_tipo_caso ON casos.tipo=fk_tipo_caso.id LEFT JOIN tipo_caso_subclase ON casos.subclase=tipo_caso_subclase.id LEFT JOIN califica ON casos.califica=califica.id WHERE casos.capturadedatos = 1 ORDER BY casos.fecha DESC, casos.id DESC, citas.id DESC;"
+    cursor.execute(query)
+    df = pd.read_sql(query, mysql.connection)
+
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Reporte Leads')
+
+    output.seek(0)
+
+    nombre_archivo = f"reporte_leads.xlsx"
+    mysql.connection.commit()
+    cursor.close()
+    return send_file(output,
+                     download_name=nombre_archivo,
+                     as_attachment=True,
+                     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+@app.route('/generar-reporte-deudas')
+@login_required
+def generar_reporte_deudas():
+    cursor = mysql.connection.cursor()
+    query = "SELECT casos.id, casos.caso, clientes.nombre, monto, auth.fullname, pagos.fecha FROM pagos JOIN pagos_control ON pagos_control.id=pagos.control JOIN auth ON pagos_control.creador = auth.id JOIN casos ON casos.id=pagos_control.caso JOIN clientes ON clientes.id=pagos_control.cliente WHERE pagado != 1 ORDER BY casos.id;"
+    cursor.execute(query)
+    df = pd.read_sql(query, mysql.connection)
+
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Reporte Deudas')
+
+    output.seek(0)
+
+    nombre_archivo = f"reporte_deudas.xlsx"
+    mysql.connection.commit()
+    cursor.close()
+    return send_file(output,
+                     download_name=nombre_archivo,
+                     as_attachment=True,
+                     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 app.config.from_object(config['development'])
 
-#if __name__ == "__main__":
-    #app.run(port=5002, debug=True)
+if __name__ == "__main__":
+    app.run(port=5004, debug=True)

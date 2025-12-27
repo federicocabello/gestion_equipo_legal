@@ -14,6 +14,7 @@ import Perfil from "./pages/Perfil";
 import Caso from "./pages/Caso";
 import Configuracion from "./pages/Configuracion";
 import Cobros from "./pages/Cobros";
+import Reportes from "./pages/Reportes";
 
 const App = () => {
 
@@ -115,9 +116,7 @@ useEffect(() => {
   }, 300);
   return () => clearTimeout(handler);
 }, [searchTermCases]);
-
     
-
     useEffect(() => {
   if (debouncedSearch) {
     axios.get(`${backendUrl}/busqueda/perfil`, {
@@ -149,7 +148,6 @@ useEffect(() => {
     setSearchResultsCases([]);
   }
 }, [debouncedSearch, debouncedSearchCases, backendUrl]);
-
 
       const handleSelectClient = (client) => {
         setSearchTerm('');
@@ -189,6 +187,11 @@ useEffect(() => {
       <nav>
         <div className="bg-cyan-500 py-3 flex justify-center items-center">
 
+        <div className="bg-white border border-green-600 text-xs font-bold px-4 py-1 rounded-md capitalize text-green-600 flex items-center justify-center">
+          <span className="dot mr-2"></span>
+          {user.rol}
+        </div>
+
           <div className="text-white mx-4 flex h-6 cursor-pointer text-xs items-center" onClick={toggleMenu}>
           
           {isMenuOpen && (
@@ -226,7 +229,7 @@ useEffect(() => {
                         <li
                             key={caso.id}
                             className="cursor-pointer bg-white hover:bg-cyan-100 p-2"
-                            onClick={() => handleSelectCase(caso.casos)}
+                            onClick={() => handleSelectCase(searchTermCases)}
                         >
                             <div>
                                 {caso.clasificacion === "LEAD" && (<div className="text-blue-700 font-bold">{caso.nombre}</div>)}
@@ -304,12 +307,12 @@ useEffect(() => {
   <path fillRule="evenodd" d="M18.97 3.659a2.25 2.25 0 0 0-3.182 0l-10.94 10.94a3.75 3.75 0 1 0 5.304 5.303l7.693-7.693a.75.75 0 0 1 1.06 1.06l-7.693 7.693a5.25 5.25 0 1 1-7.424-7.424l10.939-10.94a3.75 3.75 0 1 1 5.303 5.304L9.097 18.835l-.008.008-.007.007-.002.002-.003.002A2.25 2.25 0 0 1 5.91 15.66l7.81-7.81a.75.75 0 0 1 1.061 1.06l-7.81 7.81a.75.75 0 0 0 1.054 1.068L18.97 6.84a2.25 2.25 0 0 0 0-3.182Z" clipRule="evenodd" />
 </svg>
           Tareas</NavLink>
+          */}
           <NavLink to="/reportes" className="navlink"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
   <path fillRule="evenodd" d="M2.25 13.5a8.25 8.25 0 0 1 8.25-8.25.75.75 0 0 1 .75.75v6.75H18a.75.75 0 0 1 .75.75 8.25 8.25 0 0 1-16.5 0Z" clipRule="evenodd" />
   <path fillRule="evenodd" d="M12.75 3a.75.75 0 0 1 .75-.75 8.25 8.25 0 0 1 8.25 8.25.75.75 0 0 1-.75.75h-7.5a.75.75 0 0 1-.75-.75V3Z" clipRule="evenodd" />
 </svg>
           Reportes</NavLink>
-          */}
           <NavLink to="/cobros" className="navlink"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
   <path d="M4.5 3.75a3 3 0 0 0-3 3v.75h21v-.75a3 3 0 0 0-3-3h-15Z" />
   <path fillRule="evenodd" d="M22.5 9.75h-21v7.5a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3v-7.5Zm-18 3.75a.75.75 0 0 1 .75-.75h6a.75.75 0 0 1 0 1.5h-6a.75.75 0 0 1-.75-.75Zm.75 2.25a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3Z" clipRule="evenodd" />
@@ -352,6 +355,8 @@ useEffect(() => {
           <Route path="/caso/:id" element={user ? <Caso /> : <Navigate to="/login" />}
         />
           <Route path="/configuracion" element={user && user.rol == "superadmin" ? <Configuracion /> : <Navigate to="/login" />}
+        />
+        <Route path="/reportes" element={user ? <Reportes /> : <Navigate to="/login" />}
         />
           <Route path="/cobros" element={user ? <Cobros /> : <Navigate to="/login" />}
         />

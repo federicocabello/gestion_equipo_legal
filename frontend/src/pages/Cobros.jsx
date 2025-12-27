@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from "react";
+import {useState, useEffect} from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import FormatearNumero from '../components/FormatearNumero'
@@ -17,9 +17,13 @@ const Cobros = () => {
         const [pagoDesde,  setPagoDesde]  = useState(desde  ?? "");
         const [pagoHasta,  setPagoHasta]  = useState(hasta  ?? "");
 
+        const [loading, setLoading] = useState(false);
+
+
         const cargarSitioCobros = () => {
-            const haveEstado = estado !== undefined && estado !== "null" && estado !== "";
-    const haveFechas = (desde && desde !== "null" && hasta && hasta !== "null");
+    const haveEstado =
+      estado !== undefined && estado !== "null" && estado !== "";
+    const haveFechas = desde && desde !== "null" && hasta && hasta !== "null";
 
     let url = `${backendUrl}/cobros`;
     if (haveEstado && !haveFechas) {
@@ -29,17 +33,27 @@ const Cobros = () => {
       url = `${backendUrl}/cobros/${e}/${desde}/${hasta}`;
     }
 
-            axios.get(url, { withCredentials: true })
-            .then((res) => {
-                setRol(res.data.rol);
-                setEstados(res.data.estados);
-                if (res.data.cobros) setCobros(res.data.cobros);
-            })
-            .catch((err) => {
-                console.error("Error al obtener cobros:", err);
-                alert("Error! Reintente.");
-            });
-        }
+    const getData = async () => {
+      setLoading(true);
+      try {
+        const res = await axios.get(url, { withCredentials: true });
+        setRol(res.data.rol);
+        setEstados(res.data.estados);
+        if (res.data.cobros) setCobros(res.data.cobros);
+      } catch {
+        (err) => {
+          console.error("Error al obtener cobros:", err);
+          alert("Error! Reintente.");
+          setLoading(false);
+        };
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getData();
+  };
+
         
         const cambiarPagoEstado = (idpago, idestado) => {
             axios.post(`${backendUrl}/cobros/cambiar-estado`, { idpago: idpago, idestado: idestado }, { withCredentials: true })
@@ -106,17 +120,27 @@ const Cobros = () => {
                         Buscar</button>
                 </span>
             </div>
-            <table className="bg-white w-1/2 mt-10 shadow-lg">
+            <table className="bg-white w-4/5 mt-10 shadow-lg">
                 <thead>
                     <tr>
                         <th className="p-1 bg-cyan-100 border text-xs w-64">Estado</th>
                         <th className="p-1 bg-cyan-100 border text-xs">Datos</th>
+                        <th className="p-1 bg-cyan-100 border text-xs w-80">Fecha de última gestión</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td className="text-xs italic border p-1" colSpan={2}>Registros: {cobros.length}</td>
+                        <td className="text-xs italic border p-1" colSpan={3}>
+                            {loading ? (
+                                <div className="flex justify-center items-center m-auto z-5 p-2">
+                                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-500"></div>
+                                </div>
+                            ) : (
+                                <span>Registros: {cobros.length}</span>
+                            )}
+                        </td>
                     </tr>
+
                     {cobros.map((cobro) => (
                         <tr>
                             <td className="border p-2">
@@ -148,6 +172,24 @@ const Cobros = () => {
                                 </div>
                                 <div className="text-blue-500 font-bold hover:underline hover:text-blue-700 cursor-pointer transition-all text-xs" onClick={() => navigate(`/cliente/${cobro.id_cliente}`)}>
                                     CLIENTE {cobro.cliente}
+                                </div>
+                            </td>
+                            <td className="border p-2">
+                                <div className="text-gray-600 text-xs">
+                                {cobro.ultima_gestion_cobros ? (
+                                    <span>
+                                        {cobro.ultima_gestion_cobros}
+                                    </span>
+                                ) : (
+                                    <span>
+                                        No tiene registradas gestiones de cobros.
+                                    </span>
+                                )}
+                                {cobro.ultima_fecha_pago && (
+                                    <div className="text-cyan-600 font-bold">
+                                        Último pago: {cobro.ultima_fecha_pago}
+                                    </div>
+                                )}
                                 </div>
                             </td>
                         </tr>

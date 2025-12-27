@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import axios from 'axios';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -19,6 +19,9 @@ const Configuracion = () => {
     const [statusCita, setStatusCita] = useState([]);
     const [estadosPagos, setEstadosPagos] = useState([]);
     const [horas, setHoras] = useState([]);
+    const [horasBloqueadas, setHorasBloqueadas] = useState([]);
+
+    const [roles, setRoles] = useState(['invitado', 'usuario', 'moderador', 'administrador', 'superadmin']);
 
     const cargarSitioConfiguracion = () => {
         axios.get(`${backendUrl}/configuracion`, {withCredentials: true})
@@ -34,6 +37,7 @@ const Configuracion = () => {
                                 setStatusCita(response.data.statusCita);
                                 setEstadosPagos(response.data.estadosPagos);
                                 setHoras(response.data.horas);
+                                setHorasBloqueadas(response.data.horasBloqueadas);
                             })
                             .catch((error) => {
                                 console.error("Error al obtener los datos de configuración: ", error);
@@ -92,6 +96,17 @@ const Configuracion = () => {
                         .catch((error) => {
                             console.error("Error al quitar la fecha: ", error);
                             alert("Error al quitar la fecha. Reintente.");
+                        });
+            };
+
+            const eliminarHoraBloqueada = (idhora, hora) => {
+                axios.post(`${backendUrl}/configuracion/quitar-hora-bloqueada`, {"id": idhora, "hora": hora}, { withCredentials: true })
+                        .then((response) => {
+                            cargarSitioConfiguracion();
+                        })
+                        .catch((error) => {
+                            console.error("Error al quitar la hora: ", error);
+                            alert("Error al quitar la hora. Reintente.");
                         });
             };
 
@@ -425,7 +440,7 @@ const Configuracion = () => {
                                             <td className="text-center font-bold border">{fechaBloqueada.fecha}</td>
                                             <td className="p-2">{fechaBloqueada.motivo}</td>
                                             <td className="w-8">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 cursor-pointer hover:text-red-700 transition-all" onClick={() => eliminarFechaBloqueada(fechaBloqueada.fecha)}>
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 cursor-pointer hover:text-red-700 transition-all hover:scale-105" onClick={() => eliminarFechaBloqueada(fechaBloqueada.fecha)}>
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9.75 14.25 12m0 0 2.25 2.25M14.25 12l2.25-2.25M14.25 12 12 14.25m-2.58 4.92-6.374-6.375a1.125 1.125 0 0 1 0-1.59L9.42 4.83c.21-.211.497-.33.795-.33H19.5a2.25 2.25 0 0 1 2.25 2.25v10.5a2.25 2.25 0 0 1-2.25 2.25h-9.284c-.298 0-.585-.119-.795-.33Z" />
                                             </svg>
                                             </td>
@@ -453,6 +468,31 @@ const Configuracion = () => {
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                 </svg>
                             </div>
+                        </div>
+                        <div className="font-bold text-xl mt-10">Horas bloqueadas</div>
+                        <hr className="my-2" />
+                        <div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th className="border bg-blue-100 text-blue-500">Fecha</th>
+                                        <th className="border bg-blue-100 text-blue-500" colSpan={2}>Hora</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {horasBloqueadas.map((hora) => (
+                                        <tr key={hora.id}>
+                                            <td className="border p-2">{hora.fecha}</td>
+                                            <td className="border p-2 font-bold">{hora.hora}</td>
+                                            <td className="border p-2" onClick={() => eliminarHoraBloqueada(hora.id, hora.hora)}>
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 hover:scale-105 cursor-pointer hover:text-red-700 transition-all">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9.75 14.25 12m0 0 2.25 2.25M14.25 12l2.25-2.25M14.25 12 12 14.25m-2.58 4.92-6.374-6.375a1.125 1.125 0 0 1 0-1.59L9.42 4.83c.21-.211.497-.33.795-.33H19.5a2.25 2.25 0 0 1 2.25 2.25v10.5a2.25 2.25 0 0 1-2.25 2.25h-9.284c-.298 0-.585-.119-.795-.33Z" />
+                                                </svg>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 )}
@@ -626,7 +666,8 @@ const Configuracion = () => {
                         <button className="btn-guardar ml-2 text-xs p-1 rounded-full px-2" onClick={agregarUsuario}>+ Agregar usuario nuevo</button>
                     </div>
                     <hr className="my-2" />
-                    <table>
+                    <div className="flex w-full">
+                    <table className="w-full">
                         <thead>
                             <tr className="bg-gray-200 text-black">
                                 <th className="font-bold border">Nombre</th>
@@ -654,9 +695,9 @@ const Configuracion = () => {
                                     </td>
                                     <td className="border p-2">
                                         <select value={usuario.rol} className="border rounded p-1 cursor-pointer" onChange={(e) => cambiarRolUsuario(usuario.id, e.target.value, usuario.fullname)} disabled={usuario.habilitado == 0}>
-                                            <option value="superadmin">Super Administrador</option>
-                                            <option value="admin">Administrador</option>
-                                            <option value="user">Usuario</option>
+                                            {roles.map((rol) => (
+                                                <option key={rol} value={rol} className="capitalize">{rol}</option>
+                                            ))}
                                         </select>
                                     </td>
                                     <td className="border p-2 text-center">
@@ -677,6 +718,23 @@ const Configuracion = () => {
                                 ))}
                         </tbody>
                     </table>
+                        <div className="roles-de-usuario w-1/4 px-10">
+                            <h3><strong>1. Invitado:</strong></h3>
+                            <p>Este rol tiene un <span class="highlight">acceso restringido</span> al sistema. Los usuarios con el rol de <strong>Invitado</strong> pueden <span class="highlight">leer solo datos básicos</span>, como la <strong>agenda, casos y clientes</strong>. No tienen acceso a información sensible como <strong>reportes, pagos ni configuración</strong> del sistema. Ideal para personas que solo necesitan consultar información sin modificarla.</p>
+
+                            <h3><strong>2. Usuario:</strong></h3>
+                            <p>Los usuarios con este rol tienen <span class="highlight">más privilegios</span> que los invitados. Pueden <strong>agendar llamadas, editar casos, clientes y leads</strong>, pero aún <span class="highlight">no tienen acceso a reportes, pagos ni a la configuración</span> del sistema. Este rol es adecuado para usuarios que necesitan gestionar y modificar información operativa, pero sin acceso a funciones críticas como la gestión de pagos o ajustes de configuración.</p>
+
+                            <h3><strong>3. Moderador:</strong></h3>
+                            <p>El rol de <strong>Moderador</strong> permite un nivel de acceso intermedio. Los moderadores pueden <strong>ver y modificar pagos</strong>, <strong>cambiar notas de pagos, fechas y montos</strong>. Sin embargo, para eliminar pagos, necesitan <span class="highlight">solicitar permiso al administrador</span>. Los moderadores <span class="highlight">no tienen acceso a los reportes ni a la configuración</span>. Este rol es adecuado para usuarios encargados de gestionar pagos, pero con restricciones sobre la eliminación de datos y sin acceso a la información financiera y operativa sensible.</p>
+
+                            <h3><strong>4. Administrador:</strong></h3>
+                            <p>Los <strong>administradores</strong> tienen un control significativo sobre el sistema. Pueden <strong>eliminar y modificar datos</strong>, como <strong>notas, pagos, casos y más</strong>, y recibirán <strong>notificaciones</strong> para aceptar o rechazar eliminaciones de datos. Sin embargo, <span class="highlight">no tienen acceso a los reportes</span>. Este rol es ideal para usuarios que necesitan gestionar y administrar la información dentro del sistema, pero no necesitan visualizar o generar informes.</p>
+
+                            <h3><strong>5. Superadmin:</strong></h3>
+                            <p>El rol de <strong>Superadmin</strong> otorga <span class="highlight">control total</span> sobre el sistema. Los superadministradores tienen acceso completo a <strong>todos los aspectos del sistema</strong>, incluidas las configuraciones, reportes, pagos, y todos los datos. Este es el rol con <span class="highlight">máximos privilegios</span>, utilizado por aquellos que necesitan gestionar todo el sistema, configurar ajustes, y realizar cualquier acción sin restricciones.</p>
+                        </div>
+                    </div>
                     </div>
                 )}
 
@@ -741,7 +799,7 @@ const Configuracion = () => {
                 )}
 
                 {activeTab == "buscar-en-base" && (
-                    <div>
+                    <div className="w-full">
                         <div className="font-bold text-xl">
                         Busqueda en la base de datos antigua
                         </div>
@@ -768,7 +826,7 @@ const Configuracion = () => {
                         </div>
 
                         {busquedaBase.length > 0 && (
-                        <table className="w-full text-xs">
+                        <table className="w-full text-xs overflow-x-auto">
                             <thead>
                                 <tr className="bg-gray-200 text-gray-500">
                                     <th className="border border-gray-300">N° Caso</th>
@@ -779,14 +837,10 @@ const Configuracion = () => {
                                     <th className="border border-gray-300">Estado caso</th>
                                     <th className="border border-gray-300">Nombre cliente</th>
                                     <th className="border border-gray-300">Descripción contacto</th>
-                                    <th className="border border-gray-300">Tel 1</th>
-                                    <th className="border border-gray-300">Tel 2</th>
-                                    <th className="border border-gray-300">Tel 3</th>
-                                    <th className="border border-gray-300">Tel 4</th>
+                                    <th className="border border-gray-300">Telefonos</th>
                                     <th className="border border-gray-300">Dirección</th>
-                                    <th className="border border-gray-300">Estado dirección</th>
-                                    <th className="border border-gray-300">Ciudad</th>
                                     <th className="border border-gray-300">Fuente del lead</th>
+                                    <th className="border border-gray-300">Beneficiario</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -800,14 +854,26 @@ const Configuracion = () => {
                                     <td className="border border-gray-300 p-1">{item.caso_estado}</td>
                                     <td className="border border-gray-300 p-1">{item.nombre_cliente}</td>
                                     <td className="border border-gray-300 p-1">{item.contacto_descripcion}</td>
-                                    <td className="border border-gray-300 p-1 text-center">{item.tel1}</td>
-                                    <td className="border border-gray-300 p-1 text-center">{item.tel2}</td>
-                                    <td className="border border-gray-300 p-1 text-center">{item.tel3}</td>
-                                    <td className="border border-gray-300 p-1 text-center">{item.tel4}</td>
-                                    <td className="border border-gray-300 p-1">{item.direccion}</td>
-                                    <td className="border border-gray-300 p-1">{item.direccion_estado}</td>
-                                    <td className="border border-gray-300 p-1">{item.ciudad}</td>
+                                    <td className="border border-gray-300 p-1">
+                                        <div>{item.tel1}</div>
+                                        <div>{item.tel2}</div>
+                                        <div>{item.tel3}</div>
+                                        <div>{item.tel4}</div>
+                                    </td>
+                                    <td className="border border-gray-300 p-1">
+                                        <div>{item.direccion}</div>
+                                        <div>{item.direccion_estado}</div>
+                                        <div>{item.ciudad}</div>
+                                        <div>{item.cp}</div>
+                                    </td>
                                     <td className="border border-gray-300 p-1">{item.lead_source}</td>
+                                    <td className="border border-gray-300 p-1">
+                                        <div>{item.beneficiario_nombre}</div>
+                                        <div>{item.beneficiario_tel1}</div>
+                                        <div>{item.beneficiario_tel2}</div>
+                                        <div>{item.beneficiario_tel3}</div>
+                                        <div>{item.beneficiario_tel4}</div>
+                                    </td>
                                 </tr>
                                 ))}
                             </tbody>
