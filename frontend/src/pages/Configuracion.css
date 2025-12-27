@@ -9,3 +9,12 @@
 .lista-activada {
     @apply font-bold bg-gray-200
 }
+
+.highlight {
+  color: #2d6a4f; /* Un verde bonito */
+  font-weight: bold;
+}
+
+.roles-de-usuario p {
+    @apply text-xs mb-5
+}

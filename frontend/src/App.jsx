@@ -187,6 +187,11 @@ useEffect(() => {
       <nav>
         <div className="bg-cyan-500 py-3 flex justify-center items-center">
 
+        <div className="bg-white border border-green-600 text-xs font-bold px-4 py-1 rounded-md capitalize text-green-600 flex items-center justify-center">
+          <span className="dot mr-2"></span>
+          {user.rol}
+        </div>
+
           <div className="text-white mx-4 flex h-6 cursor-pointer text-xs items-center" onClick={toggleMenu}>
           
           {isMenuOpen && (

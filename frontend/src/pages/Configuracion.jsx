@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import axios from 'axios';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -20,6 +20,8 @@ const Configuracion = () => {
     const [estadosPagos, setEstadosPagos] = useState([]);
     const [horas, setHoras] = useState([]);
     const [horasBloqueadas, setHorasBloqueadas] = useState([]);
+
+    const [roles, setRoles] = useState(['invitado', 'usuario', 'moderador', 'administrador', 'superadmin']);
 
     const cargarSitioConfiguracion = () => {
         axios.get(`${backendUrl}/configuracion`, {withCredentials: true})
@@ -664,7 +666,8 @@ const Configuracion = () => {
                         <button className="btn-guardar ml-2 text-xs p-1 rounded-full px-2" onClick={agregarUsuario}>+ Agregar usuario nuevo</button>
                     </div>
                     <hr className="my-2" />
-                    <table>
+                    <div className="flex w-full">
+                    <table className="w-full">
                         <thead>
                             <tr className="bg-gray-200 text-black">
                                 <th className="font-bold border">Nombre</th>
@@ -692,9 +695,9 @@ const Configuracion = () => {
                                     </td>
                                     <td className="border p-2">
                                         <select value={usuario.rol} className="border rounded p-1 cursor-pointer" onChange={(e) => cambiarRolUsuario(usuario.id, e.target.value, usuario.fullname)} disabled={usuario.habilitado == 0}>
-                                            <option value="superadmin">Super Administrador</option>
-                                            <option value="admin">Administrador</option>
-                                            <option value="user">Usuario</option>
+                                            {roles.map((rol) => (
+                                                <option key={rol} value={rol} className="capitalize">{rol}</option>
+                                            ))}
                                         </select>
                                     </td>
                                     <td className="border p-2 text-center">
@@ -715,6 +718,23 @@ const Configuracion = () => {
                                 ))}
                         </tbody>
                     </table>
+                        <div className="roles-de-usuario w-1/4 px-10">
+                            <h3><strong>1. Invitado:</strong></h3>
+                            <p>Este rol tiene un <span class="highlight">acceso restringido</span> al sistema. Los usuarios con el rol de <strong>Invitado</strong> pueden <span class="highlight">leer solo datos básicos</span>, como la <strong>agenda, casos y clientes</strong>. No tienen acceso a información sensible como <strong>reportes, pagos ni configuración</strong> del sistema. Ideal para personas que solo necesitan consultar información sin modificarla.</p>
+
+                            <h3><strong>2. Usuario:</strong></h3>
+                            <p>Los usuarios con este rol tienen <span class="highlight">más privilegios</span> que los invitados. Pueden <strong>agendar llamadas, editar casos, clientes y leads</strong>, pero aún <span class="highlight">no tienen acceso a reportes, pagos ni a la configuración</span> del sistema. Este rol es adecuado para usuarios que necesitan gestionar y modificar información operativa, pero sin acceso a funciones críticas como la gestión de pagos o ajustes de configuración.</p>
+
+                            <h3><strong>3. Moderador:</strong></h3>
+                            <p>El rol de <strong>Moderador</strong> permite un nivel de acceso intermedio. Los moderadores pueden <strong>ver y modificar pagos</strong>, <strong>cambiar notas de pagos, fechas y montos</strong>. Sin embargo, para eliminar pagos, necesitan <span class="highlight">solicitar permiso al administrador</span>. Los moderadores <span class="highlight">no tienen acceso a los reportes ni a la configuración</span>. Este rol es adecuado para usuarios encargados de gestionar pagos, pero con restricciones sobre la eliminación de datos y sin acceso a la información financiera y operativa sensible.</p>
+
+                            <h3><strong>4. Administrador:</strong></h3>
+                            <p>Los <strong>administradores</strong> tienen un control significativo sobre el sistema. Pueden <strong>eliminar y modificar datos</strong>, como <strong>notas, pagos, casos y más</strong>, y recibirán <strong>notificaciones</strong> para aceptar o rechazar eliminaciones de datos. Sin embargo, <span class="highlight">no tienen acceso a los reportes</span>. Este rol es ideal para usuarios que necesitan gestionar y administrar la información dentro del sistema, pero no necesitan visualizar o generar informes.</p>
+
+                            <h3><strong>5. Superadmin:</strong></h3>
+                            <p>El rol de <strong>Superadmin</strong> otorga <span class="highlight">control total</span> sobre el sistema. Los superadministradores tienen acceso completo a <strong>todos los aspectos del sistema</strong>, incluidas las configuraciones, reportes, pagos, y todos los datos. Este es el rol con <span class="highlight">máximos privilegios</span>, utilizado por aquellos que necesitan gestionar todo el sistema, configurar ajustes, y realizar cualquier acción sin restricciones.</p>
+                        </div>
+                    </div>
                     </div>
                 )}
 

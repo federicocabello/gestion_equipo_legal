@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef } from "react";
+import {useState, useEffect, useRef } from "react";
 import './FullCalendar.css';
 import './CapturaDeDatos.css';
 import axios from "axios";

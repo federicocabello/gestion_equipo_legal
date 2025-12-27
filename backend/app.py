@@ -26,7 +26,7 @@ load_dotenv()
 backend_url = os.getenv("BACKEND_URL")
 
 app = Flask(__name__, static_folder="static")
-app.secret_key = "B!1w8NAt1T^%kvhUI*S^f"
+app.secret_key = "B!1w6NAt1T^%kvhUI*S^f"
 CORS(app, supports_credentials=True, origins=backend_url)
 
 mysql = MySQL(app)
@@ -2322,7 +2322,29 @@ def generar_reporte_leads():
                      as_attachment=True,
                      mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
+@app.route('/generar-reporte-deudas')
+@login_required
+def generar_reporte_deudas():
+    cursor = mysql.connection.cursor()
+    query = "SELECT casos.id, casos.caso, clientes.nombre, monto, auth.fullname, pagos.fecha FROM pagos JOIN pagos_control ON pagos_control.id=pagos.control JOIN auth ON pagos_control.creador = auth.id JOIN casos ON casos.id=pagos_control.caso JOIN clientes ON clientes.id=pagos_control.cliente WHERE pagado != 1 ORDER BY casos.id;"
+    cursor.execute(query)
+    df = pd.read_sql(query, mysql.connection)
+
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Reporte Deudas')
+
+    output.seek(0)
+
+    nombre_archivo = f"reporte_deudas.xlsx"
+    mysql.connection.commit()
+    cursor.close()
+    return send_file(output,
+                     download_name=nombre_archivo,
+                     as_attachment=True,
+                     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
 app.config.from_object(config['development'])
 
-#if __name__ == "__main__":
-    #app.run(port=5004, debug=True)
+if __name__ == "__main__":
+    app.run(port=5004, debug=True)
