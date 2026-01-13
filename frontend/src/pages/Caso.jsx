@@ -718,14 +718,16 @@ const Caso = () => {
                         <span>Documentos</span>
                     </div>
                     </Tab>
+                    {(rol == "superadmin" || rol == "administrador" || rol == "moderador") && (
                         <Tab>
-                        <div className="tab-div">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="tab-div-img">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                        </svg>
-                            <span>Pagos</span>
-                        </div>
+                            <div className="tab-div">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="tab-div-img">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                            </svg>
+                                <span>Pagos</span>
+                            </div>
                         </Tab>
+                    )}
                     <Tab>
                     <div className="tab-div">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="tab-div-img">
@@ -750,7 +752,7 @@ const Caso = () => {
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 mr-1">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 0 0 .75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 0 0-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0 1 12 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 0 1-.673-.38m0 0A2.18 2.18 0 0 1 3 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 0 1 3.413-.387m7.5 0V5.25A2.25 2.25 0 0 0 13.5 3h-3a2.25 2.25 0 0 0-2.25 2.25v.894m7.5 0a48.667 48.667 0 0 0-7.5 0M12 12.75h.008v.008H12v-.008Z" />
                             </svg>
-                            {caso.capturadedatos ? (
+                            {caso.capturadedatos && (rol == "superadmin" || rol == "administrador" || rol == "moderador") ? (
                                 <span className="flex items-center">
                                     <span className="mr-5">Consulta</span>
                                     <span className=" flex justify-center text-xs text-green-500 border border-green-500 rounded p-1 hover:bg-green-500 hover:text-white cursor-pointer transition-all" onClick={() => handleConvertirCaso(caso.idcaso, caso.idcliente)}>
@@ -829,7 +831,7 @@ const Caso = () => {
                         </div>
                         )}
 
-                        {rol != "user" && (
+                        {(rol == "superadmin" || rol == "administrador" || rol == "moderador") && (
                         <div className="justify-center flex my-5">
                             <button className="flex items-center btn-guardar bg-yellow-400 rounded border p-1 text-gray-700 cursor-pointer hover:text-black hover:bg-yellow-500 transition-all" onClick={toogleEditMode}>
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4 mr-1">
@@ -838,7 +840,7 @@ const Caso = () => {
                             </button>
                         </div>
                         )}
-                                        <div>
+                                        <div className="mt-5">
                                             <div className="flex items-center font-bold">
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 mr-1">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="m7.875 14.25 1.214 1.942a2.25 2.25 0 0 0 1.908 1.058h2.006c.776 0 1.497-.4 1.908-1.058l1.214-1.942M2.41 9h4.636a2.25 2.25 0 0 1 1.872 1.002l.164.246a2.25 2.25 0 0 0 1.872 1.002h2.092a2.25 2.25 0 0 0 1.872-1.002l.164-.246A2.25 2.25 0 0 1 16.954 9h4.636M2.41 9a2.25 2.25 0 0 0-.16.832V12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 12V9.832c0-.287-.055-.57-.16-.832M2.41 9a2.25 2.25 0 0 1 .382-.632l3.285-3.832a2.25 2.25 0 0 1 1.708-.786h8.43c.657 0 1.281.287 1.709.786l3.284 3.832c.163.19.291.404.382.632M4.5 20.25h15A2.25 2.25 0 0 0 21.75 18v-2.625c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125V18a2.25 2.25 0 0 0 2.25 2.25Z" />
@@ -862,12 +864,14 @@ const Caso = () => {
                                                     Colapsar todo
                                                 </button>
 
-                                                <button type="button" className="btn-guardar bg-emerald-500 text-white hover:bg-emerald-700 flex items-center mr-2" onClick={toogleNuevaActualizacion}>
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4 mr-1">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-                                                </svg>
-                                                Nueva actualización
-                                                </button>
+                                                {rol != "invitado" && (
+                                                    <button type="button" className="btn-guardar bg-emerald-500 text-white hover:bg-emerald-700 flex items-center mr-2" onClick={toogleNuevaActualizacion}>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4 mr-1">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                                                    </svg>
+                                                    Nueva actualización
+                                                    </button>
+                                                )}
                                                 </div>
                                                 {mostrarNuevaActualizacion && (
                                                     <div className="flex items-center mt-5">
@@ -904,7 +908,7 @@ const Caso = () => {
                                                         {item.esresultado == 2 && (
                                                             <span className="ml-1 font-bold text-white bg-green-500 px-2 rounded-full border">PAGO</span>
                                                         )}
-                                                        {item.deleted == 0 && rol == "superadmin" && (
+                                                        {item.deleted == 0 && (rol == "superadmin" || rol == "administrador" || rol == "moderador") && (
                                                             <span className="ml-auto" title="Eliminar actualización" onClick={(e) => {e.stopPropagation(); deleteActualizacion(item.id);}}>
                                                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 hover:text-red-500 transition-all cursor-pointer">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
@@ -914,7 +918,7 @@ const Caso = () => {
                                                     </div>
                                                     {expandedItems[item.id] && (
                                                         <div className="p-2">
-                                                        {rol == "superadmin" && (
+                                                        {(rol == "superadmin" || rol == "administrador" || rol == "moderador") && (
                                                             <div className="flex items-center text-xs mb-2 text-gray-500 cursor-pointer hover:text-black" onClick={() => handleEditarNotaPago(item.id, item.actualizacion)}>
                                                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4 mr-1">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
@@ -933,17 +937,20 @@ const Caso = () => {
                         </div>
 
                     <div className="w-1/2">
+
                         <div className="flex items-center font-bold">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 mr-1">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                         </svg>
                         <span>Citas</span>
-                        <button type="button" className="btn-guardar bg-emerald-500 text-white hover:bg-emerald-700 flex items-center ml-2 p-1" onClick={toogleNuevaCita}>
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4 mr-1">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-                            </svg>
-                                Nueva cita
+                        {rol != "invitado" && (
+                            <button type="button" className="btn-guardar bg-emerald-500 text-white hover:bg-emerald-700 flex items-center ml-2 p-1" onClick={toogleNuevaCita}>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4 mr-1">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                                </svg>
+                                    Nueva cita
                             </button>
+                        )}
                         </div>
                         {mostrarNuevaCita && (
                             <div>
@@ -1078,7 +1085,7 @@ const Caso = () => {
                         </div>
                         )}
 
-                        {rol != "user" && (
+                        {(rol == "superadmin" || rol == "administrador" || rol == "moderador") && (
                         <div className="flex justify-center mt-5">
                             <button className="flex items-center btn-guardar bg-cyan-300 rounded border p-1 text-gray-700 cursor-pointer hover:text-black hover:bg-cyan-400 transition-all" onClick={() => toggleEditModeCita(cita.idcita)}>
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4 mr-1">
@@ -1096,6 +1103,7 @@ const Caso = () => {
             </div>
                 </TabPanel>
                 <TabPanel>
+                    {(rol == "superadmin" || rol == "administrador" || rol == "moderador") && (
                     <div className="border rounded mb-2 bg-green-500 font-bold text-white flex text-xs p-1 w-1/4">
                         <div className="flex items-center justify-left mr-1 w-32">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4 mr-1">
@@ -1105,6 +1113,7 @@ const Caso = () => {
                         </div>
                         <input type="file" className="cursor-pointer text-xs" onChange={handleFileUpload} multiple />
                     </div>
+                    )}
                     {documentos.length > 0 ? (
                             <table className="w-full border rounded-xl">
                                 <thead>
@@ -1112,7 +1121,7 @@ const Caso = () => {
                                         <th className="border" colSpan={2}>Documento</th>
                                         <th className="border">Clasificación</th>
                                         <th className="border">Subido por</th>
-                                        {rol == "superadmin" && (
+                                        {(rol == "superadmin" || rol == "administrador" || rol == "moderador") && (
                                             <th className="border"></th>
                                         )}
                                     </tr>
@@ -1129,7 +1138,7 @@ const Caso = () => {
                                         </td>       
                                         <td className="p-2 font-bold text-amber-700">
                                             <div className="flex items-center">   
-                                            {rol != "user" && (
+                                            {(rol == "superadmin" || rol == "administrador" || rol == "moderador") && (
                                                 <span title="Renombrar documento">
                                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 hover:size-6 cursor-pointer mr-1 transition-all" onClick={() => handleEditarNombre(docq.iddoc, docq.nombre, caso.idcaso)}>
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
@@ -1145,7 +1154,7 @@ const Caso = () => {
                                                     <option key={item.id} value={item.id}>{item.clasificacion}</option>
                                                 ))}
                                             </select>
-                                            {rol != "user" && (
+                                            {(rol == "superadmin" || rol == "administrador" || rol == "moderador")&& (
                                                 <span title="Cambiar clasificación">
                                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 cursor-pointer hover:size-6 hover:text-black transition-all text-gray-600 ml-1" onClick={() => handleEnableSelect(docq.iddoc)}>
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
@@ -1154,7 +1163,7 @@ const Caso = () => {
                                             )}
                                         </td>
                                         <td className="p-2 w-96">{docq.creador}{docq.fecha}</td>
-                                        {rol == "superadmin" && (
+                                        {(rol == "superadmin" || rol == "administrador" || rol == "moderador") && (
                                             <td className="p-2 w-10">
                                                 <span title="Eliminar documento">
                                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5 hover:size-6 hover:text-red-500 transition-all cursor-pointer" onClick={() => handleDocEliminar(docq.iddoc, rol, caso.idcaso, docq.nombre)} >
@@ -1181,7 +1190,7 @@ const Caso = () => {
             </div>
           )}
                 </TabPanel>
-
+                {(rol == "superadmin" || rol == "administrador" || rol == "moderador") && (
                 <TabPanel>
                     {pagosControl ? (
                         <div className="flex">
@@ -1276,7 +1285,7 @@ const Caso = () => {
                                                 {pagos.map((item) => (
                                                     <tr key={item.id} className="border bg-white">
                                                         <td className="p-2  text-center ">
-                                                            {rol != "user" ? (
+                                                            {(rol == "superadmin" || rol == "administrador" || rol == "moderador") ? (
                                                                 <input type="date" value={formatDateForInput(item.fecha)} className="cursor-pointer" onChange={(e) => handleFechaChange(item.id, e.target.value)} />
                                                             ) : (
                                                                 <span>{item.fecha}</span>
@@ -1307,7 +1316,7 @@ const Caso = () => {
                                                                 </div>
                                                         </td>
                                                         <td className="p-2 italic flex items-center justify-around w-48">
-                                                            {rol != "user" ? (
+                                                            {(rol == "superadmin" || rol == "administrador" || rol == "moderador") ? (
                                                                 <input type="number" value={parseFloat(item.monto)} className="w-24 text-right" onChange={(e) => handleMontoChange(item.id, e.target.value)} />
                                                             ) : (
                                                                 <span><FormatearNumero numero={parseFloat(item.monto)} /></span>
@@ -1317,7 +1326,7 @@ const Caso = () => {
                                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m.75 12 3 3m0 0 3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                                                                 </svg>
                                                             </span>
-                                                            {rol != "user" && (
+                                                            {(rol == "superadmin" || rol == "administrador" || rol == "moderador") && (
                                                             <span title="Eliminar pago">
                                                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6 cursor-pointer hover:text-green-500 hover:scale-110 transition-all" onClick={() => handleEliminarPago(item.id)}>
                                                                     <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
@@ -1357,7 +1366,7 @@ const Caso = () => {
                                             {pagosNo.map((item) => (
                                                 <tr key={item.id} className="border">
                                                     <td className="text-center border">
-                                                        {rol != "user" ? (
+                                                        {(rol == "superadmin" || rol == "administrador" || rol == "moderador") ? (
                                                                 <input type="date" value={formatDateForInput(item.fecha)} className="cursor-pointer" onChange={(e) => handleFechaChange(item.id, e.target.value)} />
                                                             ) : (
                                                                 <span>{item.fecha}</span>
@@ -1372,7 +1381,7 @@ const Caso = () => {
                                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                                             </svg>
                                                         </span>
-                                                        {rol != "user" && (
+                                                        {(rol == "superadmin" || rol == "administrador" || rol == "moderador") && (
                                                             <span title="Eliminar pago">
                                                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6 cursor-pointer hover:text-amber-400 hover:scale-110 transition-all" onClick={() => handleEliminarPago(item.id)}>
                                                                     <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
@@ -1531,7 +1540,7 @@ const Caso = () => {
                                                                 </svg>
                                                             </span>
                                                         </td>
-                                                        {rol != "user" && (
+                                                        {(rol == "superadmin" || rol == "administrador" || rol == "moderador") && (
                                                             <td className="p-2 border text-center">
                                                                 <span className="w-full" title="Eliminar pago independiente">
                                                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6 mx-auto text-gray-500 hover:text-black transition-all cursor-pointer" onClick={() => handleEliminarPagoIndependiente(item.id)}>
@@ -1587,7 +1596,7 @@ const Caso = () => {
                                                     </div>
                                                     {expandedItems[item.id] && (
                                                         <div className="p-2">
-                                                            {rol != "user" && (
+                                                            {(rol == "superadmin" || rol == "administrador" || rol == "moderador") && (
                                                             <div className="flex items-center text-xs mb-2 text-gray-500 cursor-pointer hover:text-black" onClick={() => handleEditarNotaPago(item.id, item.actualizacion)}>
                                                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4 mr-1">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
@@ -1688,7 +1697,7 @@ const Caso = () => {
                                                                 </svg>
                                                             </span>
                                                         </td>
-                                                        {rol != "user" && (
+                                                        {(rol == "superadmin" || rol == "administrador" || rol == "moderador") && (
                                                             <td className="p-2 border text-center">
                                                                 <span className="w-full" title="Eliminar pago independiente">
                                                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6 mx-auto text-gray-500 hover:text-black transition-all cursor-pointer" onClick={() => handleEliminarPagoIndependiente(item.id)}>
@@ -1711,6 +1720,7 @@ const Caso = () => {
                                     <RegistrarPagoIndependiente idcaso={caso.idcaso} nombrecaso={caso.caso} idcliente={caso.idcliente} onClose={() => onCloseRegistrarPagoIndependiente()} tipos={tiposdePago} metodos={metodosPago} onStart={(idreciboindependiente) => onStartReciboIndependiente(idreciboindependiente)} />
                                 )}
                 </TabPanel>
+                )}
 
                 <TabPanel className="tab-beneficiario">
                     <div>
@@ -1760,7 +1770,7 @@ const Caso = () => {
                             <button type="button" className="btn-guardar text-blue-500 border-blue-500 bg-transparent hover:bg-white" onClick={handleSaveBeneficiario}>Guardar datos</button>
                         </div>
                         )}
-                    {rol != "user" && (
+                    {(rol == "superadmin" || rol == "administrador" || rol == "moderador") && (
                         <div className="tab-caso-informacion-div justify-center mt-4">
                             <button className="flex items-center btn-guardar bg-yellow-400 rounded border p-1 text-gray-700 cursor-pointer hover:text-black hover:bg-yellow-500 transition-all" onClick={toogleEditModeBeneficiario}>
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4 mr-1">

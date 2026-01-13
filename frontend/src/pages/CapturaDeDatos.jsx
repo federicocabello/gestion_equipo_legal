@@ -325,6 +325,7 @@ return (
                         <div>Cargar documentos</div>
                         <input type="file" className="w-full" style={{ fontSize: '11px' }} multiple onChange={handleFileChange} />
                     </div>
+                    {rol != 'invitado' && (
                     <div className="w-1/2 ml-2">
                     {!nuevaConsulta ? (
                         <button type="button" className={`btn-guardar w-full ${!isFormValid && 'bg-gray-300 cursor-not-allowed hover:bg-gray-300 text-gray-100'}`} onClick={handleEnviar} disabled={!isFormValid || loading}>{loading ? 'Cargando...' : 'Guardar'}</button>
@@ -332,6 +333,7 @@ return (
                         <button type="button" className={`btn-guardar w-full ${!isFormValidConsulta && 'bg-gray-300 cursor-not-allowed hover:bg-gray-300 text-gray-100'}`} onClick={handleEnviarNuevaConsulta} disabled={!isFormValidConsulta || loading}>{loading ? 'Cargando...' : 'Guardar'}</button>
                     )}
                     </div>
+                    )}
                 </div>
             </div>
 
@@ -446,12 +448,12 @@ return (
                                     {freeHours.map((hour, index) => (
                                         <div className="border border-blue-400 rounded">
                                         <li className={`cursor-pointer font-bold rounded p-1 text-blue-400 text-center hover:bg-blue-400 hover:text-white transition-all duration-200 ${selectedHour === hour ? "bg-blue-400 text-white" : "bg-none"}`} key={index} onClick={() => handleClickHour(hour)}>{formatHour(hour)}</li>
-                                        {rol == "superadmin" && (
+                                        {(rol == "superadmin" || rol == "administrador") && (
                                             <div className="text-xs text-red-500 font-bold cursor-pointer hover:underline flex justify-center my-1 items-center" onClick={(e) => handleBloquearHora(hour, selectedDate)}>
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-3 mr-1">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
                                             </svg>
-                                           <span>Bloquear</span>
+                                            <span>Bloquear</span>
                                             </div>
                                         )}
                                         </div>

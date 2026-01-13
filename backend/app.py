@@ -26,7 +26,7 @@ load_dotenv()
 backend_url = os.getenv("BACKEND_URL")
 
 app = Flask(__name__, static_folder="static")
-app.secret_key = "B!1w6NAt1T^%kvhUI*S^f"
+app.secret_key = "B!1w6NAt1T^%kvhUI*S^fe"
 CORS(app, supports_credentials=True, origins=backend_url)
 
 mysql = MySQL(app)
@@ -70,9 +70,7 @@ def login():
     cursor.execute("SELECT user, password, fullname, rol, id, habilitado FROM auth WHERE user = %s", (username,))
     user = cursor.fetchone()
     cursor.close()
-
-    #print(f"Datos en la base: username={user[0]}, password={user[1]}")
-    #if user and bcrypt.checkpw(password.encode("utf-8"), user[1].encode("utf-8")):
+    
     if user and user[5] and password == user[1]:
         user_obj = User(username=user[0], password=user[1], fullname=user[2], rol=user[3], id=user[4])
         login_user(user_obj)
@@ -2346,5 +2344,5 @@ def generar_reporte_deudas():
 
 app.config.from_object(config['development'])
 
-if __name__ == "__main__":
-    app.run(port=5004, debug=True)
+#if __name__ == "__main__":
+    #app.run(port=5004, debug=True)
