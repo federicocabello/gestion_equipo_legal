@@ -24,16 +24,7 @@ const Caso = () => {
     const [actualizaciones, setActualizaciones] = useState([]);
     const [nuevaActualizacion, setNuevaActualizacion] = useState("");
     const [nuevaCita, setNuevaCita] = useState({idcaso: id, razon: '', status: 1, tipo: '0', asignado: '0', idcliente: null})
-    {/*
-    useEffect(() => {
-        if (caso.idcliente) {
-            setNuevaCita((prevNuevaCita) => ({
-                ...prevNuevaCita,
-                idcliente: caso.idcliente
-            }));
-        }
-    }, [caso]);
-    */}
+
     useEffect(() => {
     if (caso && caso.idcliente) {
         setNuevaCita(prev => ({ ...prev, idcliente: caso.idcliente }));

@@ -17,6 +17,7 @@ const Home = () => {
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ duration: 1.5, ease: "easeOut" }}
                 style={{ width: "35%" }}
+                hidden
             />
 
             <div style={{

@@ -145,7 +145,7 @@ const Cobros = () => {
                         <tr>
                             <td className="border p-2">
                                 <div>
-                                    <select className="text-sm text-white border rounded-xl text-center cursor-pointer my-1 font-bold w-full" style={{ backgroundColor: '#'+cobro.colorestado }} value={cobro.id_estado} onChange={(e) => cambiarPagoEstado(cobro.idcontrol, e.target.value)} disabled={rol == "user"}>
+                                    <select className="text-sm text-white border rounded-xl text-center cursor-pointer my-1 font-bold w-full" style={{ backgroundColor: '#'+cobro.colorestado }} value={cobro.id_estado} onChange={(e) => cambiarPagoEstado(cobro.idcontrol, e.target.value)} disabled={(rol == "superadmin" || rol == "administrador" || rol == "moderador")}>
                                             {estados.map((estado) => (
                                                 <option key={estado.id} value={estado.id} className="bg-white text-black">
                                                     {estado.estado}
